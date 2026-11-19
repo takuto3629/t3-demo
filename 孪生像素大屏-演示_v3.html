@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>天河 T3 孪生大屏</title>
+<style>
+:root{
+  --bg:#080b12; --panel:#0e131d; --panel-2:#121927; --line:#1c2534; --line-2:#2a3546;
+  --text:#e6ebf2; --text-2:#a3adbd; --muted:#6b7689;
+  --accent:#2dd4e6;
+  --dep:#3987e5; --arr:#d95926;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,"PingFang SC",monospace;
+  --num:"DIN Alternate","SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{height:100vh;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+button{font-family:inherit}
+
+/* 顶栏 */
+.top{display:flex;align-items:center;gap:22px;padding:6px 14px;background:linear-gradient(90deg,#0d1422,#0a0f19);border:1px solid var(--line);border-radius:8px;min-height:58px;flex:none}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand svg{width:30px;height:30px;color:var(--accent)}
+.b1{font-weight:700;font-size:18px;letter-spacing:.5px;white-space:nowrap}
+.b1 em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--accent);margin-left:8px;letter-spacing:2px}
+.b2{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.mission{flex:1;min-width:240px;display:flex;flex-direction:column;gap:5px}
+.m-row{display:flex;align-items:baseline;gap:8px;font-size:12px;color:var(--text-2);white-space:nowrap}
+.m-val{font-family:var(--num);font-size:18px;color:var(--text);font-weight:700}
+.m-of{color:var(--muted)}
+.m-pct{margin-left:auto;font-family:var(--num);color:var(--accent);font-size:15px;font-weight:700}
+.bar{display:grid;grid-template-columns:repeat(40,1fr);gap:2px;height:9px}
+.bar i{background:#18212f;border-radius:1px}
+.bar i.on{background:var(--accent)}
+.m-row.small{font-size:11px;align-items:center}
+.m-row.small .yv{font-family:var(--num);color:var(--text);font-size:13px}
+.ybar{height:4px;background:#18212f;border-radius:2px;flex:1;position:relative;overflow:hidden;min-width:60px}
+.ybar i{position:absolute;left:0;top:0;bottom:0;background:var(--dep)}
+.clock{text-align:center;flex:none}
+.c-time{font-family:var(--num);font-size:32px;font-weight:700;letter-spacing:1px;line-height:1}
+.c-sub{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.ctrl{display:flex;flex-direction:column;gap:5px;flex:none}
+.ctrl .row{display:flex;gap:4px;align-items:center}
+.ctrl button{background:#121a28;border:1px solid var(--line-2);color:var(--text-2);font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;min-width:34px}
+.ctrl button:hover{color:var(--text)}
+.ctrl button.on{border-color:var(--accent);color:var(--accent)}
+#slider{width:236px;accent-color:var(--accent);margin:0}
+.mock{font-size:11px;color:var(--text-2);border:1px dashed var(--text-2);padding:3px 8px;border-radius:3px;white-space:nowrap;flex:none}
+
+/* 卡片 */
+.cards{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;flex:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px 7px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0;position:relative;overflow:hidden;transition:border-color .2s}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:transparent}
+.card.l1::before{background:var(--warn)} .card.l2::before{background:var(--serious)} .card.l3::before{background:var(--crit)}
+.card:hover{border-color:var(--line-2)}
+.card.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.c-head{display:flex;align-items:flex-start;gap:7px;min-width:0}
+.c-ico{width:20px;height:20px;flex:none;color:var(--accent);margin-top:1px}
+.c-ico svg{width:20px;height:20px;display:block}
+.c-tt{min-width:0;flex:1}
+.c-name{font-weight:700;font-size:14px;white-space:nowrap}
+.c-name .en{font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:1px;margin-left:5px;font-weight:400}
+.c-duty{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{flex:none;font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap;border:1px solid var(--line-2);color:var(--text-2);display:inline-flex;align-items:center;gap:4px}
+.badge i{font-style:normal;font-weight:700;font-family:var(--mono)}
+.c-main{display:flex;align-items:baseline;gap:5px;margin-top:2px;white-space:nowrap}
+.big{font-family:var(--num);font-size:26px;font-weight:700;line-height:1}
+.c-unit{font-size:11px;color:var(--text-2)}
+.c-sub{font-size:11px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-spark{height:16px;width:100%;display:block}
+.c-last{font-family:var(--mono);font-size:10.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px dashed var(--line);padding-top:4px;margin-top:1px}
+.c-last b{color:var(--muted);font-weight:400;margin-right:5px}
+.caret{display:inline-block;width:5px;height:10px;background:var(--accent);vertical-align:-1px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* 面板 */
+.main{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:8px}
+.side{display:flex;flex-direction:column;gap:8px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.p-head{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line);font-size:12px;flex:none;min-height:31px}
+.p-title{font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.p-title .en{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:1px;margin-left:6px;font-weight:400}
+.p-meta{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mono{font-family:var(--mono)}
+
+.scene-wrap{position:relative;flex:1;min-height:0;background:#0a0e16;border-radius:0 0 8px 8px;overflow:hidden}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--text-2);background:rgba(8,11,18,.78);padding:5px 9px;border:1px solid var(--line);border-radius:5px;max-width:calc(100% - 20px)}
+.lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.px{display:inline-block;width:6px;height:10px;border-radius:1px}
+.lg .st{font-family:var(--mono);font-weight:700}
+.tip{position:absolute;pointer-events:none;background:rgba(10,14,22,.96);border:1px solid var(--line-2);border-radius:6px;padding:7px 9px;font-size:12px;color:var(--text);display:none;z-index:5;min-width:150px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.tip .t1{font-weight:700;margin-bottom:3px}
+.tip .t2{color:var(--text-2);font-size:11px;line-height:1.55}
+
+/* 体检 */
+.detail{flex:none}
+.d-body{padding:8px 12px 10px;display:flex;flex-direction:column;gap:8px}
+.d-duty{font-size:11px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tile{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:5px 7px;min-width:0}
+.tile .tl{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .tv{font-family:var(--num);font-size:18px;font-weight:700;white-space:nowrap}
+.tile .tv small{font-family:var(--sans);font-size:10px;color:var(--text-2);font-weight:400;margin-left:2px}
+.spark-wrap{position:relative;height:104px}
+.spark-wrap svg{width:100%;height:100%;display:block}
+.checks{list-style:none;margin:0;padding:0;font-size:11.5px;font-family:var(--mono)}
+.checks li{display:grid;grid-template-columns:1fr auto 64px;gap:8px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--line)}
+.checks li:last-child{border-bottom:none}
+.checks .cv{color:var(--text-2);text-align:right}
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-family:var(--mono);white-space:nowrap;justify-self:end}
+.tag i{font-style:normal;font-weight:700}
+.d-src{font-size:10.5px;color:var(--muted);line-height:1.5}
+.d-src b{color:var(--text-2);font-weight:400}
+
+/* 日志 */
+.log{flex:1}
+#log{list-style:none;margin:0;padding:4px 10px 8px;overflow:auto;flex:1;min-height:0;font-size:11.5px}
+#log li{display:grid;grid-template-columns:38px 34px 1fr;gap:6px;padding:3px 0;border-bottom:1px solid #141b27;align-items:baseline}
+#log time{font-family:var(--mono);color:var(--muted);font-size:11px}
+#log .k{font-size:10px;padding:0 4px;border-radius:2px;border:1px solid var(--line-2);color:var(--text-2);text-align:center;white-space:nowrap}
+#log .k.alert{border-color:currentColor}
+#log .k.action{color:var(--accent);border-color:#1d5c66}
+#log .k.recover{color:#46c046;border-color:#1f5a1f}
+#log .k.brief{color:var(--muted)}
+#log .z{color:var(--text-2);margin-right:4px}
+#log li.fresh{animation:fresh 1.2s ease-out}
+@keyframes fresh{from{background:rgba(45,212,230,.12)}to{background:transparent}}
+
+/* 底部 */
+.bottom{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:8px;height:262px;flex:none}
+.legend-inline{display:flex;gap:12px;font-size:11px;color:var(--text-2);margin-left:auto;white-space:nowrap}
+.legend-inline span{display:inline-flex;align-items:center;gap:5px}
+.sw{display:inline-block;width:14px;height:2px}
+.sw.dash{background:none;border-top:2px dashed var(--muted);height:0}
+.chart-wrap{position:relative;flex:1;min-height:0}
+.chart-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+svg .grid{stroke:#19212e;stroke-width:1}
+svg .ax{fill:#6b7689;font-size:10px;font-family:var(--mono)}
+svg .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+svg .dep{stroke:var(--dep)} svg .arr{stroke:var(--arr)}
+svg .plan{stroke-width:1.5;stroke-dasharray:4 4;opacity:.5}
+svg .now{stroke:var(--accent);stroke-width:1;stroke-dasharray:2 3}
+svg .nowt{fill:var(--accent);font-size:10px;font-family:var(--mono)}
+svg .band{fill:rgba(160,170,190,.07)}
+svg .band-t{fill:#8b95a7;font-size:10px}
+svg .dl{fill:var(--text);font-size:11px;font-family:var(--mono)}
+svg .hv{stroke:#3a4556;stroke-width:1}
+svg .thr{stroke-width:1;stroke-dasharray:3 3}
+svg .thrt{font-size:9.5px;font-family:var(--mono);fill:var(--text-2)}
+
+.rules{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;padding:8px 12px 4px;flex:1;min-height:0;font-family:var(--mono);font-size:11px}
+.rh{color:var(--muted);margin-bottom:3px;white-space:nowrap}
+.rh b{color:var(--accent);font-weight:700;margin-right:6px}
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) auto 46px 54px;gap:8px;align-items:center;padding:1.5px 0;white-space:nowrap}
+.rrow .rn{overflow:hidden;text-overflow:ellipsis}
+.rrow .rt{color:var(--muted)}
+.rrow .rv{text-align:right;color:var(--text)}
+.srow{display:flex;justify-content:space-between;gap:8px;padding:2px 0;white-space:nowrap}
+.srow span:last-child{color:var(--muted)}
+.pipe{display:flex;align-items:center;gap:4px;padding:6px 12px 2px;flex-wrap:wrap;flex:none}
+.chip{font-size:11px;padding:2px 7px;border:1px solid var(--line-2);border-radius:3px;color:var(--text-2);transition:all .15s;white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(45,212,230,.08)}
+.pipe i{color:var(--muted);font-style:normal;font-size:11px}
+.pipe-note{font-size:10.5px;color:var(--muted);padding:2px 12px 8px;flex:none}
+
+/* 视图切换（总览 / 区域详情） */
+.view{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:8px}
+.view[hidden]{display:none}
+.go{margin-left:6px;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #1d5c66;border-radius:3px;padding:1px 7px;white-space:nowrap}
+.go:hover{background:rgba(45,212,230,.1)}
+.go.soon{color:var(--text-2);border-color:var(--line-2)}
+
+/* 区域详情页 */
+.zv{flex:1;min-height:0;display:grid;gap:8px;grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1.3fr) minmax(0,1fr)}
+.zv-head{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap;min-height:44px}
+.zv-btn{background:#121a28;border:1px solid var(--line-2);color:var(--text-2);font-size:12px;padding:4px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.zv-btn:hover{color:var(--text);border-color:var(--accent)}
+.zv-title{font-size:18px;font-weight:700;white-space:nowrap}
+.zv-title .en{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1px;margin-left:8px;font-weight:400}
+.zv-where{color:var(--text-2);font-size:12px}
+.zv-phase{font-size:11px;color:var(--accent);border:1px solid #1d5c66;border-radius:3px;padding:1px 7px;white-space:nowrap}
+.zv-sp{flex:1}
+.zv-kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px 8px;min-width:0;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:transparent}
+.kpi.l1::before{background:var(--warn)} .kpi.l2::before{background:var(--serious)} .kpi.l3::before{background:var(--crit)}
+.kpi .kl{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .kv{font-family:var(--num);font-size:26px;font-weight:700;line-height:1.15;white-space:nowrap}
+.kpi .kv small{font-family:var(--sans);font-size:11px;color:var(--text-2);font-weight:400;margin-left:3px}
+.kpi .ks{font-size:10.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-wrap{position:relative;flex:1;min-height:0;padding:4px 8px 6px}
+.plan-wrap svg{width:100%;height:100%;display:block}
+#zPlan text{font-family:var(--mono);font-size:11px;fill:#8b95a7}
+#zPlan .lb{fill:#c9d2e0;font-family:var(--sans);font-size:12px;font-weight:600}
+#zPlan .sm{font-size:10px;fill:#6b7689}
+#zPlan .roi{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 3}
+#zPlan .cnt{font-family:var(--num);font-size:13px;font-weight:700;fill:var(--text)}
+.flows{list-style:none;margin:0;padding:6px 10px;display:flex;flex-direction:column;gap:6px;overflow:auto;flex:1;min-height:0}
+.flow{border:1px solid var(--line);border-radius:6px;padding:7px 10px;cursor:pointer;background:var(--panel-2)}
+.flow:hover{border-color:var(--line-2)}
+.flow.on{border-color:var(--fc)}
+.f-top{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.f-sw{width:10px;height:10px;border-radius:2px;background:var(--fc);flex:none}
+.f-name{font-weight:700;white-space:nowrap}
+.f-n{margin-left:auto;font-family:var(--num);font-size:15px;font-weight:700;white-space:nowrap}
+.f-n small{font-family:var(--sans);font-size:10.5px;color:var(--text-2);font-weight:400;margin-left:3px}
+.f-bar{height:4px;background:#18212f;border-radius:2px;margin-top:5px;overflow:hidden}
+.f-bar i{display:block;height:100%;background:var(--fc)}
+.f-steps{display:none;flex-wrap:wrap;gap:4px;margin-top:7px;font-size:11px;color:var(--text-2)}
+.flow.on .f-steps{display:flex}
+.f-steps span{border:1px solid var(--line-2);border-radius:3px;padding:1px 6px;white-space:nowrap}
+.f-steps span b{color:var(--fc);font-family:var(--mono);margin-right:4px}
+.f-steps span.off{border-style:dashed;color:var(--muted)}
+.zv-bottom{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr);gap:8px;min-height:0}
+.zc{position:relative;flex:1;min-height:0}
+.zc svg{position:absolute;inset:0;width:100%;height:100%}
+#zLog{list-style:none;margin:0;padding:4px 10px 8px;overflow:auto;flex:1;min-height:0;font-size:11.5px}
+#zLog li{display:grid;grid-template-columns:38px 34px 1fr;gap:6px;padding:3px 0;border-bottom:1px solid #141b27;align-items:baseline}
+#zLog time{font-family:var(--mono);color:var(--muted);font-size:11px}
+#zLog .k{font-size:10px;padding:0 4px;border-radius:2px;border:1px solid var(--line-2);color:var(--text-2);text-align:center;white-space:nowrap}
+#zLog .k.action{color:var(--accent);border-color:#1d5c66}
+#zLog .k.recover{color:#46c046;border-color:#1f5a1f}
+#zLog .empty{display:block;color:var(--muted);padding:8px 0}
+.api{padding:6px 12px 8px;overflow:auto;flex:1;min-height:0;font-size:11px}
+.api pre{margin:0 0 6px;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--text-2);background:#0a0e16;border:1px solid var(--line);border-radius:5px;padding:6px 8px;white-space:pre-wrap;word-break:break-all}
+.api pre .kk{color:#8fb7e8} .api pre .vv{color:var(--text)}
+.api .ep{font-family:var(--mono);color:var(--text-2);line-height:1.7}
+.api .ep b{color:var(--accent);font-weight:400;margin-right:6px}
+.api .note{color:var(--muted);line-height:1.55;margin-top:4px}
+/* 规划中的区域 */
+.zsoon{grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.zsoon h3{margin:0;font-size:15px}
+.zsoon ul{margin:0;padding-left:20px;color:var(--text-2);font-size:13px;line-height:1.9}
+.zsoon .now{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 窄屏 */
+@media (max-width:1500px){
+  .zv{grid-template-columns:1fr;grid-template-rows:none}
+  .zv-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .zv-plan{height:460px}
+  .zv-flows{height:auto}
+  .zv-bottom{grid-template-columns:1fr}
+  .zv-bottom .panel{height:300px}
+  .view,.zv{flex:none}
+  .zv-flows .flows{flex:none;overflow:visible}
+  body{height:auto;overflow:auto}
+  .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .main{grid-template-columns:minmax(0,1fr) 380px;height:620px;flex:none}
+  .bottom{height:auto;grid-template-columns:1fr}
+  .chart-panel .chart-wrap{height:240px;flex:none}
+  .top{flex-wrap:wrap}
+}
+@media (max-width:1000px){
+  body{padding:8px}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .main{grid-template-columns:1fr;height:auto}
+  .scene-panel .scene-wrap{height:340px;flex:none}
+  .log #log{max-height:260px}
+  .rules{grid-template-columns:1fr}
+  #slider{width:160px}
+  .zv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .zv-plan{height:380px}
+  .plan-wrap{overflow-x:auto}
+  #zPlan{min-width:860px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span id="logo"></span><div><div class="b1">天河孪生<em>PIXEL OPS</em></div><div class="b2">天河 T3 示意 · 8 个区域值守员 · 规则亮灯</div></div></div>
+  <div class="mission">
+    <div class="m-row"><span>今日旅客</span><span class="m-val" id="mPax">0</span><span class="m-of">/ 计划 <span id="mPlan">0</span></span><span class="m-pct" id="mPct">0%</span></div>
+    <div class="bar" id="mBar"></div>
+    <div class="m-row small"><span>2026 年累计</span><span class="yv" id="mYear">—</span><span class="m-of">/ 3,000 万</span><div class="ybar"><i id="mYearBar"></i></div></div>
+  </div>
+  <div class="clock"><div class="c-time" id="clock">--:--</div><div class="c-sub">模拟时钟</div></div>
+  <div class="ctrl">
+    <div class="row"><button id="btnPlay" title="空格键">⏸ 暂停</button><button data-sp="1">1×</button><button data-sp="10">10×</button><button data-sp="60">60×</button><button data-sp="300">300×</button></div>
+    <div class="row"><input type="range" id="slider" min="300" max="1439" step="1" aria-label="时间轴"></div>
+  </div>
+  <span class="mock">模拟数据 · 非真实运行</span>
+</header>
+
+<div class="view" id="vOverview">
+<section class="cards" id="cards"></section>
+
+<section class="main">
+  <div class="panel scene-panel">
+    <div class="p-head"><span class="p-title">T3 航站楼 · 示意<span class="en">TERMINAL 3</span></span><span class="p-meta" id="sceneMeta"></span></div>
+    <div class="scene-wrap" id="sceneWrap">
+      <canvas id="scene"></canvas>
+      <div class="legend">
+        <span class="lg"><i class="px" style="background:#5b7db8"></i>旅客（按人数缩放）</span>
+        <span class="lg"><i class="px" style="background:#8f7ae8"></i>工作人员</span>
+        <span class="lg"><i class="px" style="background:#e6ebf2;box-shadow:inset 0 3px 0 #2dd4e6"></i>区域值守员</span>
+        <span class="lg"><span class="st" style="color:var(--warn)">!</span>关注 <span class="st" style="color:var(--serious)">!!</span>繁忙 <span class="st" style="color:var(--crit)">✕</span>告警</span>
+      </div>
+      <div class="tip" id="tip"></div>
+    </div>
+  </div>
+  <div class="side">
+    <div class="panel detail" id="detail">
+      <div class="p-head"><span class="p-title" id="dTitle">区域体检</span><span class="badge" id="dBadge"></span><a class="go" id="dGo" href="#/zone/transfer">进入详情 →</a></div>
+      <div class="d-body">
+        <div class="d-duty" id="dDuty"></div>
+        <div class="tiles" id="dTiles"></div>
+        <div class="spark-wrap"><svg id="spark"></svg></div>
+        <ul class="checks" id="dChecks"></ul>
+        <div class="d-src" id="dSrc"></div>
+      </div>
+    </div>
+    <div class="panel log">
+      <div class="p-head"><span class="p-title">值班日志<span class="en">LOG</span></span><span class="p-meta" id="logMeta"></span></div>
+      <ol id="log"></ol>
+    </div>
+  </div>
+</section>
+
+<section class="bottom">
+  <div class="panel chart-panel">
+    <div class="p-head"><span class="p-title">分时客流 · 人/小时</span>
+      <span class="legend-inline"><span><i class="sw" style="background:var(--dep)"></i>出发</span><span><i class="sw" style="background:var(--arr)"></i>到达</span><span><i class="sw" style="background:var(--text-2)"></i>实际</span><span><i class="sw dash"></i>计划</span></span></div>
+    <div class="chart-wrap" id="chartWrap"><svg id="chart"></svg><div class="tip" id="chartTip"></div></div>
+  </div>
+  <div class="panel rules-panel">
+    <div class="p-head"><span class="p-title mono">rules.yaml</span><span class="p-meta">8 条硬阈值 · 4 条软判断 · 每分钟判一次</span></div>
+    <div class="rules">
+      <div><div class="rh"><b>HARD</b># 纯算术，自动判，不占人 · 关注 / 繁忙 / 告警</div><div id="hard"></div></div>
+      <div><div class="rh"><b>SOFT</b># 交给值班员看一眼</div><div id="soft"></div></div>
+    </div>
+    <div class="pipe" id="pipe"></div>
+    <div class="pipe-note">顺序就是重点：先用便宜的规则筛掉大多数情况，只把少数推给人。升级要连续 3 分钟超线；降级要回到阈值九成以下并保持 6 分钟，避免在线附近来回闪。</div>
+  </div>
+</section>
+</div>
+
+<div class="view" id="vZone" hidden></div>
+
+<script>
+(() => {
+'use strict';
+/* ============================================================
+   0. 工具
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const hhmm = m => { m = Math.floor(m); const h = Math.floor(m / 60) % 24, mm = m % 60; return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
+
+const LV = ['正常', '关注', '繁忙', '告警'];
+const LVI = ['✓', '!', '!!', '✕'];
+const LVHEX = ['#0ca30c', '#fab219', '#ec835a', '#d03b3b'];
+const ACC = '#2dd4e6';
+
+/* ============================================================
+   1. 模拟器：确定性的一天（05:00–24:00，逐分钟）
+   ============================================================ */
+const T0 = 300, T1 = 1440, M = T1 - T0;
+const DAY_DEP = 41000, DAY_ARR = 41000, PLAN_DAY = DAY_DEP + DAY_ARR;
+// T3 规模（准入培训材料）：国内值机柜台 80、国内安检通道东西各 18、国内行李转盘 12
+const CI_TOTAL = 80, CI_RATE = 0.95, SEC_TOTAL = 36, SEC_RATE = 3.0, SEATS0 = 5000, CAROUSELS = 12, TR_RATE = 0.7;
+const YEAR_BASE = 2398.0;  // 万人，模拟的"今天之前"年度累计
+const FL_PLAN = Math.round(PLAN_DAY / 150);
+
+const g = (t, mu, s) => Math.exp(-0.5 * ((t - mu) / s) ** 2);
+const sstep = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const onWin = (t, a, b, e = 20) => sstep(t, a - e, a) * (1 - sstep(t, b, b + e));
+const depShape = t => 0.12 * onWin(t, 330, 1380, 40) + 1.0 * g(t, 465, 60) + 0.75 * g(t, 810, 85) + 0.8 * g(t, 1110, 95) + 0.25 * g(t, 1290, 60);
+const arrShape = t => 0.10 * onWin(t, 370, 1440, 40) + 0.6 * g(t, 600, 70) + 0.9 * g(t, 990, 90) + 1.0 * g(t, 1350, 55);
+
+const S = {};
+['depPlan','depAct','arrPlan','arrAct','ciQ','ciOpen','ciWait','ciServed','secQ','secOpen','secWait','secServed',
+ 'occ','board','seatPct','seats','dwell','boardSoon','trIn','trQ','trOpen','trPresent','trDwell','trCum','trServed',
+ 'bagActive','bagCap','bagLast','bagFirst','bagPresent','arrLag','taxiQ','taxiPool','metro',
+ 'staffOn','staffNeed','staffGaps','normRate','normCum','flExec','paxCum'].forEach(k => S[k] = new Float32Array(M));
+const at = (a, i) => i < 0 ? 0 : a[Math.min(i, M - 1)];
+const sumBack = (a, i, n) => { let s = 0; for (let k = 0; k < n; k++) s += at(a, i - k); return s; };
+
+/* 岗位点位与排班（沿用"在岗孪生原型"的思路：排班 = 计划层） */
+const POSTS = [
+  {id:'ci-E', zone:'checkin', name:'值机岛 E', x:25.0, y:16.55, z:10, sh:[[330,840,3],[840,1410,3]]},
+  {id:'ci-F', zone:'checkin', name:'值机岛 F', x:27.8, y:16.55, z:10, sh:[[330,840,3],[840,1410,3]], gap:[[388,412]]},
+  {id:'ci-J', zone:'checkin', name:'值机岛 J', x:36.2, y:16.55, z:10, sh:[[330,840,3],[840,1410,2]], gap:[[388,412]]},
+  {id:'ci-K', zone:'checkin', name:'值机岛 K', x:39.0, y:16.55, z:10, sh:[[360,1320,2]]},
+  {id:'sec-A1',zone:'security',name:'A 区安检前段', x:21.7, y:13.4, z:10, sh:[[330,840,7],[840,1440,7]]},
+  {id:'sec-A2',zone:'security',name:'A 区安检后段', x:21.7, y:15.3, z:10, sh:[[330,840,6],[840,1440,6]]},
+  {id:'sec-B1',zone:'security',name:'B 区安检前段', x:42.3, y:13.4, z:10, sh:[[330,840,7],[840,1440,7]]},
+  {id:'sec-B2',zone:'security',name:'B 区安检后段', x:42.3, y:15.3, z:10, sh:[[360,840,6],[840,1380,6]], gap:[[720,746]]},
+  {id:'gate-W2',zone:'gates', name:'西二指廊', x:8.2,  y:6.95, z:4, sh:[[330,1440,2]]},
+  {id:'gate-E2',zone:'gates', name:'东二指廊', x:57.8, y:6.95, z:4, sh:[[330,1440,2]]},
+  {id:'gate-W1',zone:'gates', name:'西一指廊', x:8.2,  y:22.95, z:4, sh:[[360,1380,2]]},
+  {id:'gate-E1',zone:'gates', name:'东一指廊', x:57.8, y:22.95, z:4, sh:[[360,1380,2]]},
+  {id:'tr-A', zone:'transfer',name:'A 区中转柜台', x:21.2, y:8.15, z:4, sh:[[360,1440,1]]},
+  {id:'tr-B', zone:'transfer',name:'B 区中转柜台', x:42.8, y:8.15, z:4, sh:[[360,1440,1]]},
+  {id:'bag-A',zone:'baggage', name:'A 区行李查询', x:22.0, y:10.45, z:4, sh:[[330,1440,2]]},
+  {id:'bag-B',zone:'baggage', name:'B 区转盘监护', x:42.0, y:10.45, z:4, sh:[[360,1440,2]], gap:[[1260,1279]]},
+  {id:'gnd-1',zone:'ground',  name:'GTC 出租车调度', x:39.4, y:26.75, z:3, sh:[[330,1440,2]]},
+  {id:'aoc-1',zone:'aoc',     name:'指挥席', x:55.9, y:28.85, z:3, sh:[[300,1440,3]]},
+  {id:'aoc-2',zone:'aoc',     name:'协调席', x:60.7, y:28.85, z:3, sh:[[300,1440,2]]},
+];
+const headcount = (p, t) => { let n = 0; for (const [a, b, k] of p.sh) if (t >= a && t < b) n += k; return n; };
+const inGap = (p, t) => !!(p.gap && p.gap.some(([a, b]) => t >= a && t < b));
+const gapNames = t => POSTS.filter(p => headcount(p, t) && inGap(p, t)).map(p => p.name);
+
+const EV = [];
+const ev = (t, zone, kind, text, level = 0) => EV.push({t, zone, kind, text, level});
+
+(function simulate(){
+  const rngD = mulberry32(101), rngA = mulberry32(202), rngJ = mulberry32(303);
+  const kD = Array.from({length: Math.ceil(M / 20) + 2}, () => rngD() * 2 - 1);
+  const kA = Array.from({length: Math.ceil(M / 20) + 2}, () => rngA() * 2 - 1);
+  const vn = (k, i) => { const u = i / 20, a = Math.floor(u), f = u - a, s = f * f * (3 - 2 * f); return k[a] + (k[a + 1] - k[a]) * s; };
+
+  // 计划与实际客流
+  let sD = 0, sA = 0; const dS = new Float32Array(M), aS = new Float32Array(M);
+  for (let i = 0; i < M; i++){ dS[i] = depShape(T0 + i); aS[i] = arrShape(T0 + i); sD += dS[i]; sA += aS[i]; }
+  for (let i = 0; i < M; i++){
+    const t = T0 + i;
+    S.depPlan[i] = DAY_DEP * dS[i] / sD;
+    S.arrPlan[i] = DAY_ARR * aS[i] / sA;
+    let d = S.depPlan[i] * (1 + 0.06 * vn(kD, i) + 0.05 * (rngJ() - 0.5));
+    d *= 1 + 0.05 * onWin(t, 430, 520, 15);              // 早高峰略超计划
+    let a = S.arrPlan[i] * (1 + 0.06 * vn(kA, i) + 0.05 * (rngJ() - 0.5));
+    a *= 1 - 0.55 * onWin(t, 840, 940, 10);               // 航路流控：到港减少
+    a *= 1 + 0.40 * onWin(t, 950, 1030, 15);              // 解除后：积压航班集中到港
+    S.depAct[i] = Math.max(0, d); S.arrAct[i] = Math.max(0, a);
+  }
+
+  let ciQ = 0, secQ = 0, occ = 150, trQ = 0, taxiQ = 0, paxCum = 0;
+  let secBoost = 0, secHot = 0, secCool = 0, secPend = -1;
+  let trBoost = 0, trHot = 0, trCool = 0, trPend = -1;
+  let seatsExtra = 0, gHot = 0, gCool = 0, gPend = -1;
+  let bagRelief = 0, bHot = 0, bCool = 0, bPend = -1;
+  let gndBoost = 0, tHot = 0, tCool = 0, tPend = -1;
+  const execWin = [], normWin = []; let execSum = 0, normSum = 0, execCum = 0, normCum = 0;
+
+  for (let i = 0; i < M; i++){
+    const t = T0 + i;
+    const sch = Math.min(M - 1, Math.floor(i / 30) * 30 + 15);   // 排班按半小时一档
+
+    // —— 在岗
+    let need = 0, on = 0, gaps = 0, ciGap = 0;
+    for (const p of POSTS){ const n = headcount(p, t); if (!n) continue; need += n; if (inGap(p, t)){ gaps++; if (p.zone === 'checkin') ciGap++; } else on += n; }
+    S.staffNeed[i] = need; S.staffOn[i] = on; S.staffGaps[i] = gaps;
+
+    // —— 值机
+    let ciOpen = clamp(Math.ceil(0.5 * S.depPlan[sch] / CI_RATE * 1.15), 6, CI_TOTAL);
+    ciOpen = Math.max(4, ciOpen - 6 * ciGap);
+    const ciIn = 0.5 * S.depAct[i], ciCap = ciOpen * CI_RATE;
+    const ciSrv = Math.min(ciQ + ciIn, ciCap); ciQ += ciIn - ciSrv;
+    S.ciOpen[i] = ciOpen; S.ciQ[i] = ciQ; S.ciServed[i] = ciSrv; S.ciWait[i] = ciQ / ciCap + 2;
+
+    // —— 中转
+    const trIn = 0.016 * at(S.arrAct, i - 10) + 1.2 * onWin(t, 640, 656, 2);
+    const trOpen = 2 + trBoost, trCap = trOpen * TR_RATE;
+    const trSrv = Math.min(trQ + trIn, trCap); trQ += trIn - trSrv;
+    const trPresent = trQ + trOpen * Math.min(1, trSrv / trCap);
+    S.trIn[i] = trIn; S.trQ[i] = trQ; S.trOpen[i] = trOpen; S.trPresent[i] = trPresent; S.trServed[i] = trSrv;
+    S.trDwell[i] = trQ / trCap + 3; S.trCum[i] = (i ? S.trCum[i - 1] : 0) + trIn;
+    if (trPresent > 8) trHot++; else trHot = 0;
+    if (trHot === 4 && !trBoost && trPend < 0) trPend = i + 8;
+    if (i === trPend){ trBoost = 1; trPend = -1; ev(t, 'transfer', 'action', '临时加开 1 个中转柜台（2→3）'); }
+    if (trBoost && i !== trPend){ if (trPresent < 3) trCool++; else trCool = 0; if (trCool >= 25){ trBoost = 0; trCool = 0; ev(t, 'transfer', 'action', '中转排队消化，收回临时柜台'); } }
+
+    // —— 安检
+    const secIn = at(S.ciServed, i - 8) + 0.5 * at(S.depAct, i - 12) + at(S.trServed, i - 2);
+    const secPlanned = clamp(Math.ceil(S.depPlan[Math.max(0, sch - 10)] / SEC_RATE * (t < 600 ? 0.88 : 0.97)), 6, SEC_TOTAL);   // 早班排得偏紧
+    const secOpen = Math.min(SEC_TOTAL, secPlanned + secBoost);
+    const secCap = secOpen * SEC_RATE, secSrv = Math.min(secQ + secIn, secCap); secQ += secIn - secSrv;
+    const secWait = secQ / secCap + 3;
+    S.secOpen[i] = secOpen; S.secQ[i] = secQ; S.secServed[i] = secSrv; S.secWait[i] = secWait;
+    if (secWait > 15) secHot++; else secHot = 0;
+    if (secHot === 5 && !secBoost && secPend < 0) secPend = i + 6;
+    if (i === secPend){ const add = clamp(SEC_TOTAL - secPlanned, 1, 6); secBoost = add; secPend = -1; ev(t, 'security', 'action', `加开 ${add} 条机动安检通道（${secOpen}→${secOpen + add}）`); }
+    else if (secBoost){ if (secWait < 6) secCool++; else secCool = 0; if (secCool >= 20){ ev(t, 'security', 'action', `排队消化完毕，收回 ${secBoost} 条机动通道`); secBoost = 0; secCool = 0; } }
+
+    // —— 候机
+    const dwell = 50 + 130 * onWin(t, 845, 945, 15);   // 流控：登机几乎停摆
+    const seats = SEATS0 + seatsExtra;
+    const board = occ / dwell; occ += secSrv - board;
+    S.occ[i] = occ; S.board[i] = board; S.dwell[i] = dwell; S.seats[i] = seats; S.seatPct[i] = occ / seats * 100;
+    let soon = 0; for (let k = 0; k < 30; k++) soon += at(S.depPlan, i + k - 60); S.boardSoon[i] = soon / 150;
+    if (S.seatPct[i] > 85) gHot++; else gHot = 0;
+    if (gHot === 5 && !seatsExtra && gPend < 0) gPend = i + 5;
+    if (i === gPend){ seatsExtra = 1200; gPend = -1; ev(t, 'gates', 'action', '开放指廊备用候机区（+1,200 座），广播安抚'); }
+    else if (seatsExtra && t > 950){ if (S.seatPct[i] < 55) gCool++; else gCool = 0; if (gCool >= 20){ seatsExtra = 0; gCool = 0; ev(t, 'gates', 'action', '候机区回落，关闭备用候机区'); } }
+
+    // —— 指挥：放行正常率（近 2 小时滚动 + 今日累计）
+    const lk = onWin(t, 840, 940, 8), cu = onWin(t, 948, 1010, 8), tail = onWin(t, 1010, 1080, 10);
+    const exec = (at(S.depPlan, i - 60) + S.arrPlan[i]) / 150 * (1 - 0.6 * lk + 0.7 * cu);
+    const abn = clamp(0.06 + 0.8 * lk + 0.5 * cu + 0.2 * tail + 0.03 * vn(kD, i + 11), 0, 0.95);
+    const nrm = exec * (1 - abn);
+    execWin.push(exec); normWin.push(nrm); execSum += exec; normSum += nrm;
+    if (execWin.length > 120){ execSum -= execWin.shift(); normSum -= normWin.shift(); }
+    execCum += exec; normCum += nrm;
+    S.normRate[i] = execSum > 3 ? normSum / execSum * 100 : 100;
+    S.normCum[i] = execCum > 3 ? normCum / execCum * 100 : 100;
+    S.flExec[i] = execCum;
+
+    // —— 行李
+    let bd = 0; for (let k = 0; k < 40; k++) bd += at(S.arrAct, i - k); bd /= 150;
+    const bagCap = CAROUSELS;
+    const over = Math.max(0, bd - 10);
+    const last = 24 + 1.1 * over - (bagRelief ? 6 : 0) + 1.5 * vn(kA, i + 7);
+    S.bagActive[i] = Math.min(bd, bagCap); S.bagCap[i] = bagCap; S.bagLast[i] = last; S.bagFirst[i] = 11 + 0.35 * over;
+    S.bagPresent[i] = sumBack(S.arrAct, i, 25) * 0.55;
+    if (last > 40) bHot++; else bHot = 0;
+    if (bHot === 5 && !bagRelief && bPend < 0) bPend = i + 6;
+    if (i === bPend){ bagRelief = 1; bPend = -1; ev(t, 'baggage', 'action', '加派装卸人手，加快卸机上转盘'); }
+    else if (bagRelief){ if (last < 30) bCool++; else bCool = 0; if (bCool >= 20){ bagRelief = 0; bCool = 0; ev(t, 'baggage', 'action', '到港回落，装卸人手归队'); } }
+
+    // —— 接驳
+    const metroOn = t < 1380;
+    const dem = (metroOn ? 0.10 : 0.24) * at(S.arrAct, i - 25);
+    const supply = (t < 1260 ? 8 : 6.5) + gndBoost;
+    const tSrv = Math.min(taxiQ + dem, supply); taxiQ += dem - tSrv;
+    S.taxiQ[i] = taxiQ; S.taxiPool[i] = clamp(150 - taxiQ * 0.5, 3, 160); S.metro[i] = metroOn ? 1 : 0; S.arrLag[i] = at(S.arrAct, i - 25);
+    if (taxiQ > 150) tHot++; else tHot = 0;
+    if (tHot === 5 && !gndBoost && tPend < 0) tPend = i + 10;
+    if (i === tPend){ gndBoost = 4; tPend = -1; ev(t, 'ground', 'action', t >= 1380 ? '通知调度增派运力，开通机场夜间巴士' : '通知出租车调度增派运力'); }
+    else if (gndBoost){ if (taxiQ < 30) tCool++; else tCool = 0; if (tCool >= 20){ gndBoost = 0; tCool = 0; ev(t, 'ground', 'action', '排队消化，出租车运力恢复常态'); } }
+
+    paxCum += S.depAct[i] + S.arrAct[i]; S.paxCum[i] = paxCum;
+  }
+
+  // 剧本里的"起因"
+  ev(388, 'staff', 'cause', '晨班交接：值机岛 F、J 共 6 人未到岗');
+  ev(412, 'staff', 'action', '机动组补岗到位（值机岛 F、J）');
+  ev(638, 'transfer', 'cause', '国际航班到港，中转旅客集中到 A/B 区中转柜台');
+  ev(720, 'staff', 'cause', '午餐换班交接，B 区安检后段岗位暂空');
+  ev(746, 'staff', 'action', '换班完成，B 区安检后段恢复');
+  ev(835, 'aoc', 'cause', '收到航路流控通知，预计 14:00–15:40 放行受限');
+  ev(940, 'aoc', 'cause', '流控解除，积压航班集中放行');
+  ev(1260, 'staff', 'cause', 'B 区转盘监护岗临时离岗');
+  ev(1279, 'staff', 'action', 'B 区转盘监护补岗到位');
+  ev(1380, 'ground', 'cause', '末班地铁已过，GTC 出租车需求上升');
+})();
+
+/* ============================================================
+   2. 8 个区域值守员
+   ============================================================ */
+const metroTxt = i => S.metro[i] ? `地铁 ${6 - ((T0 + i) % 6)} 分后一班` : '地铁已停运';
+const ZONES = [
+ {id:'aoc', name:'指挥', en:'AOC', duty:'只汇总，不下场', icon:'tower',
+  geo:[{x0:53.2, y0:27.8, x1:58, y1:31.4, z:3}], agent:[55.0, 30.4, 3], hold:[3, 8], where:'指挥中心（示意位置，不标实际位置）',
+  key:{label:'近2小时放行正常率', short:'近2h 正常率', unit:'%', arr:'normRate', op:'<', thr:[85, 75, 60]},
+  sub:i => `架次 ${fmt(S.flExec[i])}/${fmt(FL_PLAN)} · 异常区域 ${abnCount(i)}`,
+  tiles:i => [['已执行架次', fmt(S.flExec[i]), '架'], ['今日累计正常率', S.normCum[i].toFixed(0), '%'], ['异常区域', abnCount(i), '个']],
+  checks:i => [['今日累计正常率 ≥ 85%', `${S.normCum[i].toFixed(0)}%`, S.normCum[i] < 75 ? 2 : S.normCum[i] < 85 ? 1 : 0],
+               ['异常区域 ≤ 1', `${abnCount(i)} 个`, abnCount(i) > 2 ? 2 : abnCount(i) > 1 ? 1 : 0]],
+  src:'航班动态（航班数据中心已有每日 CSV）', phase:'一期'},
+ {id:'checkin', name:'值机', en:'CHECK-IN', duty:'旅客进门第一站', icon:'case',
+  geo:[{x0:23.4, y0:12.2, x1:40.6, y1:17.4, z:10}], agent:[35.0, 17.0, 10], where:'4F 出发大厅 · 值机岛 E F J K（G H 国际）',
+  key:{label:'平均等待', short:'平均等待', unit:' 分', arr:'ciWait', op:'>', thr:[8, 12, 20]},
+  sub:i => `排队 ${fmt(S.ciQ[i])} 人 · 国内柜台 ${S.ciOpen[i]}/${CI_TOTAL}`,
+  tiles:i => [['排队', fmt(S.ciQ[i]), '人'], ['国内柜台', `${S.ciOpen[i]}/${CI_TOTAL}`, ''], ['近 1 小时办理', fmt(sumBack(S.ciServed, i, 60)), '人']],
+  checks:i => [['排队人数 ≤ 150', `${fmt(S.ciQ[i])} 人`, S.ciQ[i] > 300 ? 2 : S.ciQ[i] > 150 ? 1 : 0],
+               ['柜台余量 ≥ 4', `${CI_TOTAL - S.ciOpen[i]} 个`, CI_TOTAL - S.ciOpen[i] < 4 ? 1 : 0]],
+  src:'离港/值机系统办理量 ＋ 柜台开放数', phase:'二期'},
+ {id:'security', name:'安检', en:'SECURITY', duty:'最容易堵的那道门', icon:'gate',
+  geo:[{x0:20, y0:12.2, x1:23.4, y1:17.4, z:10}, {x0:40.6, y0:12.2, x1:44, y1:17.4, z:10}], agent:[21.2, 17.0, 10], where:'4F 国内安检 A 区（西）/ B 区（东）',
+  key:{label:'预计等待', short:'预计等待', unit:' 分', arr:'secWait', op:'>', thr:[10, 15, 25]},
+  sub:i => `排队 ${fmt(S.secQ[i])} 人 · A+B 通道 ${S.secOpen[i]}/${SEC_TOTAL}`,
+  tiles:i => [['排队', fmt(S.secQ[i]), '人'], ['开放通道', `${S.secOpen[i]}/${SEC_TOTAL}`, ''], ['近 1 小时通过', fmt(sumBack(S.secServed, i, 60)), '人']],
+  checks:i => [['通道余量 ≥ 2', `${SEC_TOTAL - S.secOpen[i]} 条`, SEC_TOTAL - S.secOpen[i] < 2 ? 1 : 0],
+               ['排队人数 ≤ 600', `${fmt(S.secQ[i])} 人`, S.secQ[i] > 900 ? 2 : S.secQ[i] > 600 ? 1 : 0]],
+  src:'安检信息系统汇总数（排队、通道开放）· 敏感，单独审批', phase:'二期后段'},
+ {id:'gates', name:'候机', en:'GATES', duty:'等登机的人都在这', icon:'seat',
+  geo:[{x0:0.6, y0:5, x1:30, y1:7.2, z:4}, {x0:35, y0:5, x1:64.4, y1:7.2, z:4}, {x0:0.6, y0:21, x1:13.8, y1:23.2, z:4}, {x0:51.2, y0:21, x1:64.4, y1:23.2, z:4}], agent:[16.5, 6.3, 4], where:'2F 连廊与四条指廊（国内 01–61 号登机口）',
+  key:{label:'座位占用率', short:'座位占用', unit:'%', arr:'seatPct', op:'>', thr:[75, 85, 95]},
+  sub:i => `在候 ${fmt(S.occ[i])} 人 · 30 分钟内登机 ${Math.round(S.boardSoon[i])} 班`,
+  tiles:i => [['在候', fmt(S.occ[i]), '人'], ['座位', fmt(S.seats[i]), '座'], ['30 分钟内登机', Math.round(S.boardSoon[i]), '班']],
+  checks:i => [['平均候机 ≤ 60 分', `${Math.round(S.dwell[i])} 分`, S.dwell[i] > 90 ? 2 : S.dwell[i] > 60 ? 1 : 0],
+               ['30 分钟内登机 ≤ 14 班', `${Math.round(S.boardSoon[i])} 班`, S.boardSoon[i] > 14 ? 1 : 0]],
+  src:'离港系统登机数据 ＋ 候机区客流计数', phase:'二期'},
+ {id:'transfer', name:'中转', en:'TRANSFER', duty:'一期唯一实测数据源', icon:'swap',
+  geo:[{x0:30, y0:5, x1:35, y1:7.2, z:4}, {x0:20.2, y0:8.1, x1:22.3, y1:10.7, z:4}, {x0:41.7, y0:8.1, x1:43.8, y1:10.7, z:4}], agent:[32.6, 6.3, 4], where:'2F A/B 区中转柜台 · V11/V12 中转休息区',
+  key:{label:'柜台前人数', short:'柜台前', unit:' 人', arr:'trPresent', op:'>', thr:[8, 14, 20]},
+  sub:i => `今日到访 ${fmt(S.trCum[i])} · 平均停留 ${S.trDwell[i].toFixed(1)} 分`,
+  tiles:i => [['今日到访', fmt(S.trCum[i]), '人次'], ['平均停留', S.trDwell[i].toFixed(1), '分'], ['开放柜台', S.trOpen[i], '个']],
+  checks:i => [['平均停留 ≤ 10 分', `${S.trDwell[i].toFixed(1)} 分`, S.trDwell[i] > 15 ? 2 : S.trDwell[i] > 10 ? 1 : 0],
+               ['开放柜台 ≥ 2', `${S.trOpen[i]} 个`, 0]],
+  src:'中转区头顶客流相机（A/B 区中转柜台、V11/V12；count_in / present / avg_dwell）', phase:'一期'},
+ {id:'baggage', name:'行李', en:'BAGGAGE', duty:'到港旅客的第一印象', icon:'bag',
+  geo:[{x0:22.3, y0:7.4, x1:41.7, y1:10.7, z:4}], agent:[38.0, 9.6, 4], where:'2F 行李提取厅 · 国内 A区 2–7 / B区 16–21，国际 8–10、13–15',
+  key:{label:'末件行李', short:'末件行李', unit:' 分', arr:'bagLast', op:'>', thr:[35, 40, 50]},
+  sub:i => `首件 ${Math.round(S.bagFirst[i])} 分 · 转盘 ${Math.round(S.bagActive[i])}/${S.bagCap[i]}`,
+  tiles:i => [['首件', Math.round(S.bagFirst[i]), '分'], ['转盘占用', `${Math.round(S.bagActive[i])}/${S.bagCap[i]}`, ''], ['提取厅', fmt(S.bagPresent[i]), '人']],
+  checks:i => [['首件行李 ≤ 15 分', `${Math.round(S.bagFirst[i])} 分`, S.bagFirst[i] > 15 ? 1 : 0],
+               ['转盘余量 ≥ 2', `${Math.max(0, Math.round(S.bagCap[i] - S.bagActive[i]))} 个`, S.bagCap[i] - S.bagActive[i] < 2 ? 1 : 0]],
+  src:'行李系统（BHS）首件 / 末件时间', phase:'二期'},
+ {id:'ground', name:'接驳', en:'GROUND', duty:'最后一公里', icon:'car',
+  geo:[{x0:21, y0:21.4, x1:43, y1:28, z:3}, {x0:24, y0:28, x1:40, y1:31.2, z:3}], agent:[40.6, 26.0, 3], where:'交通中心 GTC · 出租车、地铁/城铁、大巴',
+  key:{label:'出租车排队', short:'出租车排队', unit:' 人', arr:'taxiQ', op:'>', thr:[80, 150, 250]},
+  sub:i => `蓄车 ${Math.round(S.taxiPool[i])} 辆 · ${metroTxt(i)}`,
+  tiles:i => [['蓄车', Math.round(S.taxiPool[i]), '辆'], ['地铁', S.metro[i] ? '运营中' : '已停运', ''], ['近 1 小时到港', fmt(sumBack(S.arrAct, i, 60)), '人']],
+  checks:i => [['蓄车 ≥ 30 辆', `${Math.round(S.taxiPool[i])} 辆`, S.taxiPool[i] < 15 ? 2 : S.taxiPool[i] < 30 ? 1 : 0],
+               ['地铁运营中', S.metro[i] ? '是' : '末班已过', S.metro[i] ? 0 : 1]],
+  src:'出租车蓄车场计数 ＋ 地铁时刻表', phase:'二期'},
+ {id:'staff', name:'在岗', en:'STAFF', duty:'排班说了算，缺岗就亮灯', icon:'badge',
+  geo:[{x0:58, y0:27.8, x1:62.8, y1:31.4, z:3}], agent:[61.4, 30.4, 3], hold:[1, 1], where:'排班席（与指挥中心同处，示意位置）',
+  key:{label:'缺岗点位', short:'缺岗点位', unit:' 个', arr:'staffGaps', op:'>', thr:[0, 2, 4]},
+  sub:i => `在岗 ${S.staffOn[i]}/${S.staffNeed[i]} 人 · 点位 ${POSTS.length} 个`,
+  tiles:i => [['在岗', S.staffOn[i], '人'], ['应在岗', S.staffNeed[i], '人'], ['点位', POSTS.length, '个']],
+  checks:i => { const r = S.staffNeed[i] ? S.staffOn[i] / S.staffNeed[i] * 100 : 100;
+               return [['在岗率 ≥ 95%', `${r.toFixed(0)}%`, r < 85 ? 2 : r < 95 ? 1 : 0], ['机动组', S.staffGaps[i] ? '已派出' : '2 人待命', 0]]; },
+  alertDetail:i => '：' + gapNames(T0 + i).join('、'),
+  src:'排班表（值机岛、A/B 区安检、四条指廊、中转、行李、GTC、指挥席 19 个点位）', phase:'一期'},
+];
+const ZMAP = Object.fromEntries(ZONES.map(z => [z.id, z]));
+const lvlOf = (z, v) => { const [a, b, c] = z.key.thr; return z.key.op === '>' ? (v > c ? 3 : v > b ? 2 : v > a ? 1 : 0) : (v < c ? 3 : v < b ? 2 : v < a ? 1 : 0); };
+const fmtKey = (z, v) => fmt(v);
+// 回滞：降级要比阈值再好一截（'>' 类低 10%，'<' 类高 3 个点），避免在线附近来回闪
+const lvlOfDown = (z, v) => { const [a, b, c] = z.key.thr; return z.key.op === '>' ? (v > c * 0.9 ? 3 : v > b * 0.9 ? 2 : v > a * 0.9 ? 1 : 0) : (v < c + 3 ? 3 : v < b + 3 ? 2 : v < a + 3 ? 1 : 0); };
+
+// 状态（防闪烁）+ 告警/恢复事件
+const ST = {};
+for (const z of ZONES){
+  const arr = S[z.key.arr]; const [uh, dh] = z.hold || [3, 6];
+  const out = new Int8Array(M); let cur = 0, cand = 0, cnt = 0;
+  for (let i = 0; i < M; i++){
+    let r = lvlOf(z, arr[i]);
+    if (r < cur) r = Math.min(cur, lvlOfDown(z, arr[i]));
+    if (r === cur){ cnt = 0; cand = r; }
+    else {
+      if (r === cand) cnt++; else { cand = r; cnt = 1; }
+      if (cnt >= (r > cur ? uh : dh)){
+        const prev = cur; cur = r; cnt = 0;
+        const v = fmtKey(z, arr[i]) + z.key.unit;
+        if (r > prev){ ev(T0 + i, z.id, 'alert', `${z.key.label} ${v}，${LV[r]}（阈值 ${z.key.op}${z.key.thr[r - 1]}${z.key.unit.trim()}）${z.alertDetail ? z.alertDetail(i) : ''}`, r); EV[EV.length - 1].bub = `${z.key.short} ${v} · ${LV[r]}`; }
+        else ev(T0 + i, z.id, 'recover', r === 0 ? `${z.key.label}${z.key.op === '>' ? '回落' : '回升'}至 ${v}，恢复正常` : `${z.key.label} ${v}，降为${LV[r]}`, r);
+      }
+    }
+    out[i] = cur;
+  }
+  ST[z.id] = out;
+}
+function abnCount(i){ let n = 0; for (const z of ZONES) if (z.id !== 'aoc' && ST[z.id] && ST[z.id][i] > 0) n++; return n; }
+// 整点播报
+for (let h = 6; h <= 23; h++){
+  const i = h * 60 - T0; const bad = ZONES.filter(z => z.id !== 'aoc' && ST[z.id][i] > 0).map(z => z.name + LV[ST[z.id][i]]);
+  ev(h * 60, 'aoc', 'brief', `整点播报：今日已运送 ${fmt(S.paxCum[i])} 人（计划 ${(S.paxCum[i] / PLAN_DAY * 100).toFixed(0)}%），${bad.length ? bad.length + ' 处异常：' + bad.join('、') : '各区正常'}`);
+}
+const KW = {cause:0, alert:1, recover:1, action:2, brief:3};
+EV.sort((a, b) => a.t - b.t || KW[a.kind] - KW[b.kind]);
+EV.forEach((e, k) => e.id = k);
+const KNAME = {cause:'起因', alert:'告警', action:'处置', recover:'恢复', brief:'播报'};
+
+// 分时曲线用的 15 分钟分箱（人/小时）
+const NB = M / 15;
+const HB = {depP:new Float32Array(NB), arrP:new Float32Array(NB), depA:new Float32Array(NB), arrA:new Float32Array(NB)};
+for (let b = 0; b < NB; b++) for (let k = 0; k < 15; k++){ const i = b * 15 + k; HB.depP[b] += S.depPlan[i] * 4; HB.arrP[b] += S.arrPlan[i] * 4; HB.depA[b] += S.depAct[i] * 4; HB.arrA[b] += S.arrAct[i] * 4; }
+const yRaw = Math.max(...HB.depP, ...HB.arrP, ...HB.depA, ...HB.arrA) * 1.06;
+const Y_STEP = yRaw > 6000 ? 2000 : 1000, Y_MAX = Math.ceil(yRaw / Y_STEP) * Y_STEP;
+
+/* ============================================================
+   3. 运行状态
+   ============================================================ */
+let simT = 380;           // 06:20 开场
+let speed = 60;           // 模拟秒 / 真实秒
+let playing = true;
+let selId = 'security';
+const curIdx = () => clamp(Math.floor(simT - T0), 0, M - 1);
+const valAt = a => { const x = clamp(simT - T0, 0, M - 1), i = Math.floor(x), f = x - i; return lerp(a[i], a[Math.min(i + 1, M - 1)], f); };
+
+/* ============================================================
+   4. 像素图标（8×8）
+   ============================================================ */
+const ICONS = {
+  plane: ['...#....','...##...','#..###..','########','#..###..','...##...','...#....','........'],
+  tower: ['.######.','#......#','.######.','...##...','...##...','..####..','..####..','.######.'],
+  case:  ['..####..','..#..#..','########','#......#','########','#......#','########','.#....#.'],
+  gate:  ['########','#......#','#.####.#','#.#..#.#','#.#..#.#','#.#..#.#','#.#..#.#','###..###'],
+  seat:  ['........','#..#..#.','#..#..#.','########','########','#..#..#.','#..#..#.','........'],
+  swap:  ['....#...','.....#..','########','.....#..','..#.....','.#......','########','..#.....'],
+  bag:   ['..####..','..#..#..','.######.','.#....#.','.######.','........','########','#.#.#.#.'],
+  car:   ['........','..####..','.#....#.','########','########','.##..##.','........','........'],
+  badge: ['...##...','..####..','..####..','...##...','.######.','########','########','........'],
+};
+const iconSVG = name => { const g = ICONS[name]; let r = ''; g.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; })); return `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">${r}</svg>`; };
+$('#logo').innerHTML = iconSVG('plane');
+
+/* ============================================================
+   5. T3 场景：斜视像素图（上北下南，与旅客导览图同向）
+      坐标：x 向东、y 向南、z 向上；依据 T3 旅客导览图与楼层分布示意，不按比例。
+      多层压平：4F 出发大厅抬高画在主楼前半，2F 行李提取画在主楼后半（实际上下重叠）。
+   ============================================================ */
+const AW = 640, AH = 232, SX = 8, SY = 6, BX = -3, OX = 108, OY = 26;
+const P = (x, y, z = 0) => [OX + x * SX + y * BX, OY + y * SY - z];
+const grCv = document.createElement('canvas'); grCv.width = AW; grCv.height = AH; const grCtx = grCv.getContext('2d');
+const dyCv = document.createElement('canvas'); dyCv.width = AW; dyCv.height = AH; const dyCtx = dyCv.getContext('2d');
+const cv = $('#scene'), ctx = cv.getContext('2d'), wrap = $('#sceneWrap');
+let CW = 0, CH = 0, DPR = 1, SC = 2, offX = 0, offY = 0;
+
+function poly(c, pts, fill, stroke){ c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k][0], pts[k][1]); c.closePath(); if (fill){ c.fillStyle = fill; c.fill(); } if (stroke){ c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); } }
+const flat = (c, x0, y0, x1, y1, z, fill, stroke) => poly(c, [P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], fill, stroke);
+// 斜视下可见三个面：顶面、南立面、东立面
+function box(c, x, y, z, w, d, h, top, front, side){
+  const a = P(x, y + d, z), b = P(x + w, y + d, z), e = P(x + w, y, z);
+  const A = P(x, y + d, z + h), B = P(x + w, y + d, z + h), C = P(x + w, y, z + h), D = P(x, y, z + h);
+  poly(c, [a, b, B, A], front); poly(c, [b, e, C, B], side); poly(c, [D, C, B, A], top);
+}
+function shade(hex, f){ const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round((n >> 16 & 255) * f)},${Math.round((n >> 8 & 255) * f)},${Math.round((n & 255) * f)})`; }
+
+const SHIRTS = ['#5b7db8', '#b07a5b', '#6fa38a', '#c2a35a', '#8d6fb3', '#5aa6b8', '#a86a86', '#7d8796', '#cfd4dc', '#3f6f9e'];
+const B2 = ['#1c2538', '#131a28', '#0f1520'], B4 = ['#242b47', '#1a2036', '#141a2c'], BG = ['#1a2230', '#121924', '#0e141d'], BC = ['#1d1e38', '#16172b', '#111221'];
+const FUR = ['#45546f', '#334058', '#273246'], SEAT = ['#3a5f96', '#2b4a7a', '#223c63'], SCRN = ['#2dd4e6', '#1d6f7a', '#155660'];
+const ISL = [{n:'E', x:25.0}, {n:'F', x:27.8}, {n:'G', x:30.6, intl:1}, {n:'H', x:33.4, intl:1}, {n:'J', x:36.2}, {n:'K', x:39.0}];
+const DOM_ISL = ISL.filter(o => !o.intl).map(o => o.x);
+const DOORS = [{n:'05', x:22.5}, {n:'04', x:27}, {n:'03', x:32}, {n:'02', x:37}, {n:'01', x:41.5}];
+// 2F 行李转盘：A区 2–7、国际 8/9/10/13/14/15（6 个，无 11、12 号）、B区 16–21
+const CARS = [];
+for (let k = 0; k < 6; k++) CARS.push({x: 22.8 + k * 0.95, g: 'A'});
+for (let k = 0; k < 6; k++) CARS.push({x: 29.6 + k * 0.95, g: 'I'});
+for (let k = 0; k < 6; k++) CARS.push({x: 36.45 + k * 0.95, g: 'B'});
+const CAR_DOM = CARS.filter(o => o.g !== 'I');
+CAR_DOM.forEach((o, k) => o.rank = (k % 6) * 2 + (o.g === 'B' ? 1 : 0));   // A、B 区交替启用
+
+/* 机位：连廊北侧、上指廊南侧、下指廊北侧、下指廊南侧 */
+const STANDS = [];
+[1.9, 4.7, 7.5, 10.3, 15.2, 18.2, 21.2, 24.2, 27.2, 30.2, 33.8, 36.8, 39.8, 42.8, 45.8, 48.8, 54.1, 56.9, 59.7, 62.5].forEach(x => STANDS.push({x, dir: 1, ny: 4.9, line: 6.1, edge: 5.0}));
+const PIER_X = [2.4, 5.2, 8.0, 10.6, 54.6, 57.4, 60.2, 63.0];
+PIER_X.forEach(x => STANDS.push({x, dir: -1, ny: 7.4, line: 6.1, edge: 7.2}));
+PIER_X.forEach(x => STANDS.push({x, dir: 1, ny: 20.8, line: 22.1, edge: 21.0}));
+PIER_X.forEach(x => STANDS.push({x, dir: -1, ny: 23.4, line: 22.1, edge: 23.2}));
+(() => { const r = mulberry32(11); STANDS.forEach(s => { s.r = r(); s.door = [s.x + 0.52, s.edge, 4]; s.lower = s.line > 20; });
+  [...STANDS].sort((a, b) => a.r - b.r).forEach((s, k) => s.rank = k); })();
+const PEAK_MOV = (() => { let m = 0; for (let i = 0; i < M; i++) m = Math.max(m, S.depPlan[i] + S.arrPlan[i]); return m; })();
+const activeStands = i => Math.round(STANDS.length * clamp(0.35 + 0.55 * (at(S.depPlan, i + 40) + S.arrPlan[i]) / PEAK_MOV + 0.15 * onWin(T0 + i, 845, 960, 10), 0.3, 0.97));
+
+/* 地面层（静态）：机坪、滑行线、天井、陆侧道路 */
+function drawGround(){
+  const c = grCtx; c.fillStyle = '#0a0e16'; c.fillRect(0, 0, AW, AH);
+  const r = mulberry32(5); c.fillStyle = '#121a27'; for (let k = 0; k < 160; k++) c.fillRect(Math.floor(r() * AW), Math.floor(r() * AH), 1, 1);
+  flat(c, -2, -1.5, 67, 28.4, 0, '#10161f');
+  const dash = (x0, x1, y, col) => { for (let x = x0; x < x1; x += 1.1) flat(c, x, y - 0.05, x + 0.55, y + 0.05, 0, col); };
+  dash(-1.5, 66.5, 0.6, '#3a3320'); dash(-1.5, 11.6, 14.1, '#3a3320'); dash(53.4, 66.5, 14.1, '#3a3320'); dash(-1.5, 11.6, 27.3, '#3a3320'); dash(53.4, 66.5, 27.3, '#3a3320');
+  for (const s of STANDS){ const y0 = s.dir > 0 ? s.ny - 3.3 : s.ny, y1 = s.dir > 0 ? s.ny : s.ny + 3.3; flat(c, s.x - 0.05, y0, s.x + 0.05, y1, 0, '#4a3f18'); }
+  flat(c, 13.8, 7.2, 20, 13.4, 0, '#0b0f16'); flat(c, 44, 7.2, 51.2, 13.4, 0, '#0b0f16');
+  c.fillStyle = '#161d29'; for (const [x0, x1] of [[14.4, 19.6], [44.6, 50.8]]) for (let x = x0; x < x1; x += 1) for (let y = 7.8; y < 13; y += 1){ const [px, py] = P(x, y, 0); c.fillRect(Math.round(px), Math.round(py), 1, 1); }
+  flat(c, 13.8, 15.6, 51.2, 33.6, 0, '#0c1016');
+  flat(c, 13.8, 17.6, 51.2, 20.9, 0, '#121820'); dash(14, 51, 19.25, '#2f3745');
+  flat(c, 14.2, 20.9, 20.6, 33.6, 0, '#121820'); flat(c, 43.4, 20.9, 50.8, 33.6, 0, '#121820');
+  for (let y = 21.4; y < 33; y += 1.1){ flat(c, 17.35, y, 17.45, y + 0.55, 0, '#2f3745'); flat(c, 47.05, y, 47.15, y + 0.55, 0, '#2f3745'); }
+}
+
+/* 建筑与陈设（每帧和人、飞机一起按深度排序；k 越小越先画） */
+const OBJ = [];
+const addO = (k, fn) => OBJ.push({k, fn});
+function slab(x0, y0, x1, y1, z, h, col, opt = {}){
+  addO(y0 - 0.02, c => {
+    box(c, x0, y0, z, x1 - x0, y1 - y0, h, col[0], col[1], col[2]);
+    if (opt.grid) for (let gx = x0 + 2; gx < x1 - 0.2; gx += 2) flat(c, gx, y0, gx + 0.08, y1, z + h, opt.grid);
+    if (opt.glass) flat(c, x0, y0, x1, y0 + 0.16, z + h, opt.glass);
+  });
+}
+const GLASS = '#3b5b7a';
+slab(0, 4.6, 1.4, 7.6, 0, 4, B2, {glass: GLASS}); slab(63.6, 4.6, 65, 7.6, 0, 4, B2, {glass: GLASS});
+slab(0.6, 5, 64.4, 7.2, 0, 4, B2, {grid: '#202a3e', glass: GLASS});                          // 2F 连廊 + 西二/东二指廊
+slab(12.2, 7.2, 13.8, 21, 0, 4, B2); slab(51.2, 7.2, 52.8, 21, 0, 4, B2);                   // 东西连接廊
+slab(0, 20.6, 1.4, 23.6, 0, 4, B2); slab(63.6, 20.6, 65, 23.6, 0, 4, B2);
+slab(0.6, 21, 13.8, 23.2, 0, 4, B2, {grid: '#202a3e', glass: GLASS});                        // 西一指廊
+slab(51.2, 21, 64.4, 23.2, 0, 4, B2, {grid: '#202a3e', glass: GLASS});                       // 东一指廊
+slab(13.8, 13.4, 20, 15.6, 0, 4, B2); slab(44, 13.4, 51.2, 15.6, 0, 4, B2);                // 2F 前侧通道
+slab(20, 7.2, 44, 17.4, 0, 4, B2, {glass: GLASS});                                           // 主楼 2F
+slab(20, 12, 44, 17.4, 4, 6, B4, {grid: '#2c3456'});                                         // 主楼 4F 出发大厅（压平示意）
+slab(12.5, 23.2, 13.5, 33.6, 0, 3, B2);                                                      // 去 T2 的连廊
+slab(21, 21.4, 43, 28, 0, 3, BG); slab(24, 28, 40, 31.2, 0, 3, BG);                          // GTC 交通中心
+slab(53, 27.6, 63, 31.6, 0, 3, BC);                                                          // 指挥中心（示意位置）
+
+// 候机座椅
+const seatRow = (x0, x1, y) => { for (let x = x0; x < x1 - 1; x += 2.3) addO(y + 0.15, c => box(c, x, y, 4, 1.6, 0.3, 1.6, ...SEAT)); };
+seatRow(1.2, 12, 6.25); seatRow(14.2, 29.8, 6.25); seatRow(35.4, 50.8, 6.25); seatRow(53.2, 64, 6.25);
+seatRow(1.2, 12.2, 22.25); seatRow(53.2, 64, 22.25);
+// V11/V12 中转休息区（导览图上的品红色块）
+addO(5.5, c => box(c, 30.4, 5.3, 4, 4.2, 0.45, 2, '#c0559a', '#8e3b6e', '#6d2d55'));
+for (let x = 30.6; x < 34.4; x += 1.3) addO(6.6, c => box(c, x, 6.45, 4, 1.0, 0.3, 1.4, '#7a3d68', '#5d2f50', '#4a253f'));
+// 2F 行李转盘（启用的转盘上有行李在转）
+CARS.forEach((cr, k) => addO(9.0, (c, i, rt) => {
+  const intl = cr.g === 'I';
+  box(c, cr.x - 0.28, 7.9, 4, 0.56, 2.3, 1.6, intl ? '#3a5466' : '#3a4456', intl ? '#2a3d4a' : '#2a3242', intl ? '#22323d' : '#222936');
+  const on = intl ? (k - 6) < clamp(Math.round(S.arrAct[i] / 25), 1, 6) : cr.rank < Math.round(S.bagActive[i]);
+  if (!on) return;
+  for (let b = 0; b < 4; b++){
+    const per = 2 * 2.3 + 2 * 0.56; let s = ((rt * 0.18 + b / 4 + k * 0.07) % 1) * per, bx, by;
+    if (s < 2.3){ bx = cr.x - 0.28; by = 7.9 + s; } else if ((s -= 2.3) < 0.56){ bx = cr.x - 0.28 + s; by = 10.2; } else if ((s -= 0.56) < 2.3){ bx = cr.x + 0.28; by = 10.2 - s; } else { s -= 2.3; bx = cr.x + 0.28 - s; by = 7.9; }
+    const [px, py] = P(bx, by, 5.8); c.fillStyle = SHIRTS[(b * 3 + k) % SHIRTS.length]; c.fillRect(Math.round(px), Math.round(py), 1, 1);
+  }
+}));
+// A/B 区中转柜台（有行李中转、中转快速安检）
+for (const tx of [20.5, 42.1]) addO(8.55, c => { box(c, tx, 8.3, 4, 1.4, 0.5, 4, ...FUR); box(c, tx, 8.25, 8, 1.4, 0.06, 2, '#c0559a', '#c0559a', '#8e3b6e'); });
+// 4F 值机岛 E F G H J K（G、H 为国际）
+ISL.forEach(o => addO(14.5, (c, i) => {
+  box(c, o.x - 0.4, 12.9, 10, 0.8, 3.2, 4, ...(o.intl ? ['#4a4f86', '#383c68', '#2c2f52'] : FUR));
+  const lit = o.intl ? 3 : clamp(Math.round(S.ciOpen[i] / CI_TOTAL * 12) - DOM_ISL.indexOf(o.x) * 3, 0, 3);
+  for (let s = 0; s < 3; s++){ const on = s < lit; box(c, o.x - 0.12, 13.2 + s * 1.05, 14, 0.24, 0.24, 1.6, on ? '#5ee7f5' : '#252f3e', on ? '#2dd4e6' : '#1c2633', on ? '#1fa7b6' : '#161e2a'); }
+  box(c, o.x - 0.45, 12.75, 16.5, 0.9, 0.08, 3, ...SCRN);
+}));
+// 4F 国内安检 A 区（西）/ B 区（东），通道灯随开放数亮
+for (const [sx, side] of [[20.25, 0], [42.55, 1]]) for (let k = 0; k < 5; k++){
+  const y = 12.6 + k * 0.92;
+  addO(y + 0.2, (c, i) => {
+    box(c, sx, y, 10, 1.2, 0.36, 4, '#4a5875', '#36425a', '#2a3448');
+    const [lx, ly] = P(sx + 0.6, y + 0.18, 14.6); c.fillStyle = k * 2 + side < Math.round(S.secOpen[i] / SEC_TOTAL * 10) ? '#3fdc6a' : '#3a4252'; c.fillRect(Math.round(lx), Math.round(ly), 2, 1);
+  });
+}
+// 4F 立面上的 01–05 号门
+DOORS.forEach(d => addO(17.42, c => poly(c, [P(d.x - 0.55, 17.4, 5), P(d.x + 0.55, 17.4, 5), P(d.x + 0.55, 17.4, 8.6), P(d.x - 0.55, 17.4, 8.6)], '#2b5066')));
+// GTC：出租车上客区、排队栏杆、地铁/城铁入口、大巴、停车场
+addO(21.5, c => { c.fillStyle = '#222b3a';
+  for (let x = 22; x < 42.5; x += 1) for (let y = 22.8; y < 25.2; y += 0.8){ const [px, py] = P(x, y, 3); c.fillRect(Math.round(px), Math.round(py), 1, 1); }
+  for (let x = 25; x < 39.5; x += 1) for (let y = 29.2; y < 31; y += 0.8){ const [px, py] = P(x, y, 3); c.fillRect(Math.round(px), Math.round(py), 1, 1); } });
+addO(26.9, c => { flat(c, 26, 26.9, 40.2, 28.6, 3, '#0d1219'); for (let x = 26.3; x < 40; x += 0.9) flat(c, x, 27.72, x + 0.45, 27.78, 3, '#2f3745'); });
+addO(26.0, c => flat(c, 24.6, 25.95, 40.2, 26.03, 3, '#3a4660'));
+addO(22.55, c => { box(c, 21.6, 22.0, 3, 1.8, 1.1, 4, '#26304a', '#1d2538', '#161d2c'); box(c, 21.6, 21.95, 7, 1.8, 0.08, 2.4, '#3987e5', '#3987e5', '#2a6cc0'); });
+addO(22.6, c => box(c, 38.2, 22.2, 3, 3.4, 0.8, 2.6, '#3d5a7a', '#2c4560', '#22364d'));
+// 指挥中心：大屏 + 两排席位
+addO(27.7, c => box(c, 54, 27.62, 3, 8.4, 0.12, 9, '#0c1622', '#0f2233', '#0c1622'));
+for (const dx of [54.6, 59.4]) addO(29.25, c => { box(c, dx, 29.0, 3, 2.6, 0.5, 2, ...FUR); box(c, dx + 0.6, 29.05, 5, 1.4, 0.08, 1.6, ...SCRN); });
+
+/* 人群站位（预生成，带楼层高度 z） */
+const SLOTS = {};
+(function buildSlots(){
+  const r = mulberry32(7); const col = () => SHIRTS[Math.floor(r() * SHIRTS.length)];
+  const sh = a => { for (let k = a.length - 1; k > 0; k--){ const j = Math.floor(r() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+  const mk = (x, y, z) => ({x: x + (r() - 0.5) * 0.1, y: y + (r() - 0.5) * 0.06, z, col: col(), ph: r() * 7});
+  SLOTS.checkin = [];
+  for (let row = 0; row < 9; row++) for (const cx of ISL.map(o => o.x)) for (const s of [-1, 1]) SLOTS.checkin.push(mk(cx + s * 0.78, 16.3 - row * 0.36, 10));
+  SLOTS.security = [];
+  for (let row = 0; row < 12; row++) for (const qx of [22.9, 41.1, 22.5, 41.5, 22.1, 41.9]) SLOTS.security.push(mk(qx, 16.9 - row * 0.36, 10));
+  const gate = [];
+  for (let x = 1.3; x < 63.8; x += 0.55){ if (x > 29.8 && x < 35.2) continue; gate.push(mk(x, 6.0, 4), mk(x, 6.65, 4)); }
+  for (const [x0, x1] of [[1.3, 13.4], [51.6, 63.8]]) for (let x = x0; x < x1; x += 0.55) gate.push(mk(x, 22.0, 4), mk(x, 22.65, 4));
+  SLOTS.gates = sh(gate);
+  SLOTS.transfer = [];
+  for (let k = 0; k < 6; k++) SLOTS.transfer.push(mk(21.2, 9.0 + k * 0.3, 4), mk(42.8, 9.0 + k * 0.3, 4));
+  for (let x = 30.7; x < 34.6; x += 0.45) SLOTS.transfer.push(mk(x, 6.25, 4), mk(x, 6.85, 4));
+  const bag = [];
+  for (const cr of CARS) for (const s of [-1, 1]) for (let y = 8.0; y < 10.3; y += 0.44) bag.push(mk(cr.x + s * 0.47, y, 4));
+  SLOTS.baggage = sh(bag);
+  SLOTS.ground = [];
+  for (const ry of [25.7, 25.35]) for (let k = 0; k < 45; k++) SLOTS.ground.push(mk(39.8 - k * 0.34, ry, 3));
+})();
+const CROWD = {checkin:{arr:'ciQ', per:5}, security:{arr:'secQ', per:10}, gates:{arr:'occ', per:40}, transfer:{arr:'trPresent', per:1}, baggage:{arr:'bagPresent', per:12}, ground:{arr:'taxiQ', per:4}};
+
+/* 走动的人：按真实流线（GTC→4F 值机→A/B 区安检→下到 2F→指廊；廊桥→2F 行李→GTC） */
+const rr = mulberry32(99);
+const pick = a => a[Math.floor(rr() * a.length)];
+let visStands = STANDS;
+const ROUTES = [
+  {flow:'depAct', rate:1.6, mk(){ const x = 22 + rr() * 20, d = pick(DOORS).x; return [[x, 20.5, 0], [x, 18.4, 0], [d, 17.8, 0], [d, 17.25, 10], [d + (rr() - 0.5), 16.7, 10]]; }},
+  {flow:'ciServed', rate:1.2, mk(){ const cx = pick(DOM_ISL), s = rr() < 0.5 ? -1 : 1, qx = (cx < 32 ? 22.5 : 41.5) + (rr() - 0.5) * 0.6;
+      return [[cx + s * 0.78, 13.4 + rr() * 2, 10], [cx + s * 0.78, 12.5, 10], [qx, 12.5, 10], [qx, 13.2 + rr() * 3, 10]]; }},
+  {flow:'secServed', rate:1.5, mk(){ const w = rr() < 0.5, lower = rr() < 0.3;
+      const pts = w ? [[20.4, 13 + rr() * 3, 10], [20.05, 13.5, 10], [19.6, 14.4, 4], [13.0, 14.5, 4]] : [[43.6, 13 + rr() * 3, 10], [43.95, 13.5, 10], [44.4, 14.4, 4], [52.0, 14.5, 4]];
+      const cx = w ? 13.0 : 52.0;
+      if (lower) pts.push([cx, 22.1, 4], [w ? 1.5 + rr() * 10.5 : 53 + rr() * 10.5, 22.0 + rr() * 0.6, 4]);
+      else pts.push([cx, 6.3, 4], [w ? 1.5 + rr() * 27 : 35.5 + rr() * 27.5, 6.0 + rr() * 0.6, 4]);
+      return pts; }},
+  {flow:'board', rate:1.3, mk(){ const s = pick(visStands); return [[s.x + (rr() - 0.5) * 2.4, s.line + (rr() - 0.5) * 0.5, 4], [s.door[0], s.line, 4], s.door]; }},
+  {flow:'arrAct', rate:1.6, mk(){ const s = pick(visStands), cr = pick(CAR_DOM); const pts = [s.door, [s.door[0], s.line, 4]];
+      if (s.lower){ const cx = s.x < 32 ? 13.0 : 52.0; pts.push([cx, s.line, 4], [cx, 6.6, 4]); }
+      pts.push([cr.x, 6.7, 4], [cr.x + (rr() < 0.5 ? -0.47 : 0.47), 8.4 + rr() * 1.6, 4]); return pts; }},
+  {flow:'arrLag', rate:1.4, mk(){ const cr = pick(CAR_DOM), w = cr.x < 32, rx = w ? 15.5 + rr() * 3.5 : 45 + rr() * 3.5;
+      const pts = [[cr.x, 9.9, 4], [w ? 20.6 : 43.4, 10.3, 4], [w ? 19.6 : 44.4, 14.6, 4], [rx, 15.3, 4], [rx, 17.4, 0], [22 + rr() * 20, 19.2, 0]];
+      if (S.metro[curIdx()] && rr() < 0.35) pts.push([22.5, 21.6, 3], [22.4, 22.9, 3]);
+      else { const qn = Math.min(89, Math.round(valAt(S.taxiQ) / 4)), ex = Math.max(24.8, 39.8 - (qn % 45) * 0.34); pts.push([ex, 21.6, 3], [ex, 25.0, 3], [ex, 25.6, 3]); }
+      return pts; }},
+  {flow:'trIn', rate:0.9, mk(){ const w = rr() < 0.5, tx = w ? 21.2 : 42.8; return [[w ? 2 + rr() * 26 : 36 + rr() * 27, 6.3, 4], [tx, 6.7, 4], [tx, 9.0 + rr() * 1.4, 4]]; }},
+  {flow:'trServed', rate:0.7, mk(){ const tx = rr() < 0.5 ? 21.2 : 42.8; return [[tx, 8.9, 4], [tx, 6.9, 4], [30.6 + rr() * 4, 6.2 + rr() * 0.6, 4]]; }},
+];
+ROUTES.forEach(R => { R.peak = Math.max(...S[R.flow]) || 1; R.acc = 0; });
+let walkers = [];
+function spawnWalker(R){
+  const pts = R.mk(); const seg = []; let len = 0;
+  for (let k = 1; k < pts.length; k++){ const l = Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1], (pts[k][2] - pts[k - 1][2]) / 6) || 0.01; seg.push(l); len += l; }
+  walkers.push({pts, seg, len, d: 0, sp: 2.2 + rr() * 1.0, col: pick(SHIRTS), x: pts[0][0], y: pts[0][1], z: pts[0][2]});
+}
+function updWalkers(dt){
+  const i = curIdx(), n = activeStands(i); visStands = STANDS.filter(s => s.rank < n);
+  for (const R of ROUTES){ R.acc += dt * R.rate * (S[R.flow][i] / R.peak); while (R.acc >= 1){ R.acc -= 1; if (walkers.length < 190) spawnWalker(R); } }
+  for (const w of walkers){
+    w.d += w.sp * dt; let d = w.d, k = 0;
+    while (k < w.seg.length && d > w.seg[k]){ d -= w.seg[k]; k++; }
+    if (k >= w.seg.length){ w.dead = true; continue; }
+    const f = d / w.seg[k], a = w.pts[k], b = w.pts[k + 1];
+    w.x = lerp(a[0], b[0], f); w.y = lerp(a[1], b[1], f); w.z = lerp(a[2], b[2], f);
+  }
+  walkers = walkers.filter(w => !w.dead);
+}
+/* 楼前车道上的车 */
+const CAR_COLS = ['#c9ced8', '#5a6b85', '#3d4f6e', '#9aa3b0', '#6f5a85', '#8a7a62'];
+let cars = [], carAcc = 0;
+function updCars(dt){
+  carAcc += dt * 0.6;
+  while (carAcc >= 1){ carAcc -= 1; const dir = rr() < 0.5 ? 1 : -1; cars.push({x: dir > 0 ? 13.6 : 50.2, y: dir > 0 ? 18.05 : 19.7, z: 0, dir, sp: 3 + rr() * 1.5, col: rr() < 0.3 ? '#2fb39a' : pick(CAR_COLS)}); }
+  for (const c of cars) c.x += c.dir * c.sp * dt;
+  cars = cars.filter(c => c.x > 13.4 && c.x < 50.4);
+}
+
+/* 精灵 */
+function person(c, ax, ay, shirt, walk, staff, bob){
+  const x = Math.round(ax) - 2, y = Math.round(ay) - 8 - (bob ? 1 : 0);
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x, Math.round(ay) - 1, 4, 1);
+  c.fillStyle = staff ? '#c4b5ff' : '#2a2320'; c.fillRect(x + 1, y, 2, 1);
+  c.fillStyle = '#e9c29f'; c.fillRect(x + 1, y + 1, 2, 1);
+  c.fillStyle = shirt; c.fillRect(x, y + 2, 4, 2); c.fillRect(x + 1, y + 4, 2, 1);
+  c.fillStyle = '#232a38';
+  if (walk) { c.fillRect(x, y + 5, 1, 2); c.fillRect(x + 3, y + 5, 1, 2); } else c.fillRect(x + 1, y + 5, 2, 2);
+}
+const AGENT = ['..aaa..', '.aaaaa.', '.sssss.', '.sksks.', '.sssss.', '..sss..', '.wwwww.', 'wwwwwww', 'w.www.w', 's.www.s', '..d.d..', '..d.d..', '.kk.kk.'];
+const AGC = {a: ACC, s: '#e9c29f', k: '#151515', w: '#e6ebf2', d: '#2a3346'};
+function agent(c, ax, ay, z, rt, lvl){
+  const bob = Math.floor(rt * 1.6 + z.agent[0]) % 2;
+  const x = Math.round(ax) - 3, y = Math.round(ay) - 13 - bob;
+  c.fillStyle = hexA(lvl ? LVHEX[lvl] : ACC, lvl ? 0.55 + 0.35 * Math.sin(rt * 5) : 0.35);
+  c.fillRect(x - 2, Math.round(ay), 11, 1); c.fillRect(x, Math.round(ay) + 1, 7, 1); c.fillRect(x, Math.round(ay) - 1, 7, 1);
+  AGENT.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch !== '.'){ c.fillStyle = AGC[ch]; c.fillRect(x + rx, y + ry, 1, 1); } }));
+  if (z.id === selId){ c.fillStyle = ACC; c.fillRect(x + 3, y - 4 - (Math.floor(rt * 3) % 2), 1, 2); }
+}
+function carDraw(c, car){
+  const z = car.z || 0;
+  box(c, car.x, car.y, z, 1.1, 0.55, 2.2, car.col, shade(car.col, 0.75), shade(car.col, 0.6));
+  box(c, car.x + 0.25, car.y + 0.05, z + 2.2, 0.55, 0.45, 1.5, '#1d2838', '#2b3b52', '#223044');
+}
+function drawPlane(c, s, rt){
+  const g = s.x, d = s.dir, ny = s.ny, W = ['#c3ccd8', '#97a2b2', '#7a8596'];
+  const back = d > 0 ? ny - 3.0 : ny, tailY = d > 0 ? ny - 3.0 : ny + 2.55, wingY = d > 0 ? ny - 1.75 : ny + 1.3, finY = d > 0 ? ny - 3.0 : ny + 2.45;
+  box(c, g - 0.6, tailY, 2.2, 1.2, 0.45, 0.4, ...W);
+  box(c, g - 1.3, wingY, 1.1, 1.08, 0.45, 0.5, ...W);
+  box(c, g - 0.22, back, 0.7, 0.44, 3.0, 1.9, ...W);
+  box(c, g - 0.04, finY, 2.6, 0.08, 0.55, 2.8, ACC, '#22a8b8', '#1a8794');
+  box(c, g + 0.22, wingY, 1.1, 1.08, 0.45, 0.5, ...W);
+  const by0 = d > 0 ? ny - 0.9 : s.edge, by1 = d > 0 ? s.edge : ny + 0.9;
+  box(c, g + 0.32, by0, 1.6, 0.4, by1 - by0, 1.3, '#8a96a8', '#6c7789', '#59637a');
+  if ((rt + g * 0.37) % 1.4 < 0.18){ const [bx, by] = P(g, back + 1.5, 2.7); c.fillStyle = '#ff5a5a'; c.fillRect(Math.round(bx), Math.round(by), 1, 1); }
+}
+
+function drawDynamic(rt){
+  const c = dyCtx, i = curIdx();
+  c.clearRect(0, 0, AW, AH); c.drawImage(grCv, 0, 0);
+  const L = OBJ.slice();
+  for (const z of ZONES){
+    const l = ST[z.id][i];
+    for (const g of z.geo){
+      if (l > 0) L.push({k: g.y0 + 0.001, fn: c => flat(c, g.x0, g.y0, g.x1, g.y1, g.z, hexA(LVHEX[l], 0.12 + 0.07 * l * (0.6 + 0.4 * Math.sin(rt * 3))))});
+      if (z.id === selId) L.push({k: g.y0 + 0.002, fn: c => { c.setLineDash([2, 2]); flat(c, g.x0, g.y0, g.x1, g.y1, g.z, null, hexA(ACC, 0.85)); c.setLineDash([]); }});
+      else if (l > 0) L.push({k: g.y0 + 0.002, fn: c => flat(c, g.x0, g.y0, g.x1, g.y1, g.z, null, hexA(LVHEX[l], 0.55))});
+    }
+  }
+  for (const s of visStands) L.push({k: s.dir > 0 ? s.ny : s.ny + 3.0, fn: (c, i, rt) => drawPlane(c, s, rt)});
+  for (const zid in CROWD){ const cr = CROWD[zid], sl = SLOTS[zid]; const n = Math.min(sl.length, Math.round(valAt(S[cr.arr]) / cr.per));
+    for (let k = 0; k < n; k++){ const p = sl[k]; L.push({k: p.y, t: 'p', x: p.x, y: p.y, z: p.z, col: p.col, ph: p.ph}); } }
+  for (const w of walkers) L.push({k: w.y, t: 'w', x: w.x, y: w.y, z: w.z, col: w.col, ph: Math.floor(w.d * 5) % 2});
+  for (const p of POSTS){ if (!headcount(p, simT)) continue; L.push({k: p.y, t: inGap(p, simT) ? 'gap' : 's', x: p.x, y: p.y, z: p.z}); }
+  for (const z of ZONES) L.push({k: z.agent[1], t: 'a', x: z.agent[0], y: z.agent[1], z: z.agent[2], zone: z});
+  for (const car of cars) L.push({k: car.y + 0.55, t: 'car', car});
+  const nTaxi = clamp(Math.round(valAt(S.taxiPool) / 12), 0, 14);
+  for (let k = 0; k < nTaxi; k++){ const car = {x: 38.8 - Math.floor(k / 2) * 1.5, y: k % 2 ? 27.95 : 27.1, z: 3, col: '#2fb39a'}; L.push({k: car.y + 0.55, t: 'car', car}); }
+  L.sort((a, b) => a.k - b.k);
+  for (const o of L){
+    if (o.fn){ o.fn(c, i, rt); continue; }
+    if (o.t === 'car'){ carDraw(c, o.car); continue; }
+    const [ax, ay] = P(o.x, o.y, o.z);
+    if (o.t === 'p') person(c, ax, ay, o.col, 0, false, Math.floor(rt * 1.4 + o.ph) % 6 === 0);
+    else if (o.t === 'w') person(c, ax, ay, o.col, o.ph, false, false);
+    else if (o.t === 's') person(c, ax, ay, '#8f7ae8', 0, true, Math.floor(rt * 1.1 + o.x) % 5 === 0);
+    else if (o.t === 'gap'){ const on = (rt % 0.8) < 0.5; c.fillStyle = on ? '#ff5a5a' : '#7a2a2a'; c.fillRect(Math.round(ax), Math.round(ay) - 10, 1, 5); c.fillRect(Math.round(ax), Math.round(ay) - 4, 1, 1); flat(c, o.x - 0.35, o.y - 0.25, o.x + 0.35, o.y + 0.25, o.z, null, on ? '#d03b3b' : '#5a2222'); }
+    else if (o.t === 'a') agent(c, ax, ay, o.zone, rt, ST[o.zone.id][i]);
+  }
+}
+
+/* 文字层 */
+let pillRects = [];
+function roundRect(c, x, y, w, h, r){ c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+const toC = (x, y, z) => { const [ax, ay] = P(x, y, z); return [offX + ax * SC, offY + ay * SC]; };
+const LABELS = [
+  ['↑ 西二指廊 15–27', 6.4, 11.6, 0], ['↑ 东二指廊 36–49', 58.6, 11.6, 0], ['↓ 西一指廊 01–14', 6.4, 16.6, 0], ['↓ 东一指廊 50–61', 58.6, 16.6, 0], ['↑ 连廊 28–35', 47.6, 9.4, 0],
+  ['A区转盘 2–7', 25.2, 7.5, 5], ['国际 8–10·13–15', 32.0, 7.5, 5], ['B区转盘 16–21', 38.8, 7.5, 5],
+  ['A区安检', 21.6, 12.4, 16], ['B区安检', 42.4, 12.4, 16],
+  ['GTC 交通中心', 32, 30.2, 3], ['出租车上客', 33, 29.0, 3], ['地铁·城铁', 22.5, 21.4, 10], ['→ T2', 13.0, 32.4, 3], ['指挥中心（示意位置）', 58, 32.7, 0],
+];
+function drawOverlay(rt){
+  const c = ctx, i = curIdx(), css = getComputedStyle(document.body);
+  const MONO = css.getPropertyValue('--mono'), SANS = css.getPropertyValue('--sans');
+  c.textBaseline = 'middle'; c.textAlign = 'center';
+  c.font = '600 10px ' + MONO;
+  for (const [t, x, y, z] of LABELS){ const [px, py] = toC(x, y, z); const w = c.measureText(t).width + 8; c.fillStyle = 'rgba(10,14,22,0.72)'; c.fillRect(px - w / 2, py - 7, w, 14); c.fillStyle = 'rgba(139,149,167,0.9)'; c.fillText(t, px, py); }
+  c.font = '700 10px ' + MONO;
+  for (const o of ISL){ const [px, py] = toC(o.x, 12.75, 18); c.fillStyle = o.intl ? '#a9b0ff' : '#c9d2e0'; c.fillText(o.n, px, py); }
+  c.font = '9px ' + MONO; c.fillStyle = 'rgba(139,149,167,0.75)';
+  for (const d of DOORS){ const [px, py] = toC(d.x, 17.45, 1.5); c.fillText(d.n, px, py); }
+  // 指挥中心大屏上的出发曲线
+  const pts = [], cur = Math.floor((simT - T0) / 15);
+  for (let b = 0; b <= Math.min(cur, NB - 1); b++) pts.push(toC(54.3 + (b + 0.5) / NB * 7.8, 27.7, 4.5 + HB.depA[b] / Y_MAX * 6.5));
+  if (pts.length > 1){ c.strokeStyle = ACC; c.lineWidth = 1.5; c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); }
+  // 值守员名牌 + 气泡
+  pillRects = []; const placed = [];
+  c.font = '600 11px ' + SANS;
+  for (const z of ZONES){
+    const l = ST[z.id][i], v = fmtKey(z, valAt(S[z.key.arr])) + z.key.unit.trim();
+    const [px, py] = toC(z.agent[0], z.agent[1], z.agent[2] + 17);
+    const icon = LVI[l], text = `${z.name} ${v}`;
+    const wIcon = c.measureText(icon).width, w = wIcon + c.measureText(text).width + 18, h = 18;
+    const rx = Math.round(px - w / 2), ry = Math.round(py - h);
+    c.fillStyle = 'rgba(8,11,18,0.88)'; roundRect(c, rx, ry, w, h, 4); c.fill();
+    c.strokeStyle = l ? LVHEX[l] : (z.id === selId ? ACC : '#2a3546'); c.lineWidth = 1; roundRect(c, rx + 0.5, ry + 0.5, w - 1, h - 1, 4); c.stroke();
+    c.textAlign = 'left'; c.fillStyle = l ? LVHEX[l] : '#46c046'; c.fillText(icon, rx + 6, ry + h / 2 + 0.5);
+    c.fillStyle = '#e6ebf2'; c.fillText(text, rx + 10 + wIcon, ry + h / 2 + 0.5);
+    pillRects.push({id: z.id, x: rx, y: ry, w, h}); placed.push({x: rx, y: ry, w, h});
+  }
+  c.font = '11px ' + SANS;
+  for (const z of ZONES){
+    let e = null; for (let k = EV.length - 1; k >= 0; k--){ const x = EV[k]; if (x.t > simT) continue; if (simT - x.t > 22) break; if (x.zone === z.id && x.kind !== 'brief' && x.kind !== 'recover'){ e = x; break; } }
+    if (!e) continue;
+    const pr = pillRects.find(p => p.id === z.id); let txt = e.bub || e.text; if (txt.length > 22) txt = txt.slice(0, 21) + '…';
+    const w = c.measureText(txt).width + 16, h = 20; let bx = clamp(Math.round(pr.x + pr.w / 2 - w / 2), 4, CW - w - 4), by = pr.y - h - 7;
+    for (let tries = 0; tries < 4 && placed.some(q => bx < q.x + q.w && bx + w > q.x && by < q.y + q.h && by + h > q.y); tries++) by -= h + 4;
+    if (by < 4) by = pr.y + pr.h + 6;
+    placed.push({x: bx, y: by, w, h});
+    c.fillStyle = 'rgba(230,235,242,0.96)'; roundRect(c, bx, by, w, h, 5); c.fill();
+    const tipX = clamp(pr.x + pr.w / 2, bx + 8, bx + w - 8);
+    if (by < pr.y){ c.beginPath(); c.moveTo(tipX - 4, by + h); c.lineTo(tipX + 4, by + h); c.lineTo(tipX, by + h + 5); c.fill(); }
+    c.fillStyle = e.kind === 'action' ? ACC : e.kind === 'alert' ? LVHEX[e.level] : '#8b95a7'; c.fillRect(bx + 4, by + 5, 2, h - 10);
+    c.fillStyle = '#0b0f17'; c.textAlign = 'left'; c.fillText(txt, bx + 10, by + h / 2 + 0.5);
+  }
+  // 指北 + 水印
+  c.textAlign = 'left'; c.font = '700 11px ' + MONO; c.fillStyle = 'rgba(163,173,189,0.85)'; c.fillText('N ↑', 12, 16);
+  c.textAlign = 'right'; c.font = '10px ' + SANS; c.fillStyle = 'rgba(139,149,167,0.65)';
+  c.fillText('T3 示意 · 不按比例 · 4F 出发与 2F 到达压平显示 · 模拟数据', CW - 10, 14);
+}
+
+function resize(){
+  const r = wrap.getBoundingClientRect(); CW = r.width; CH = r.height; DPR = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, Math.round(CW * DPR)); cv.height = Math.max(1, Math.round(CH * DPR));
+  let s = Math.min(CW / AW, CH / AH); const sd = s * DPR; if (sd >= 2 && sd - Math.floor(sd) < 0.15) s = Math.floor(sd) / DPR; SC = s;   // 接近整数倍就取整，否则铺满
+  offX = Math.round((CW - AW * SC) / 2); offY = Math.round((CH - AH * SC) / 2);
+  drawChart(); drawSpark();
+}
+function render(rt){
+  drawDynamic(rt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(dyCv, Math.round(offX * DPR), Math.round(offY * DPR), Math.round(AW * SC * DPR), Math.round(AH * SC * DPR));
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawOverlay(rt);
+}
+
+/* 场景交互：先认名牌，再按楼层从高到低反算区域 */
+function zoneAt(mx, my){
+  for (const p of pillRects) if (mx >= p.x && mx <= p.x + p.w && my >= p.y && my <= p.y + p.h) return ZMAP[p.id];
+  const ax = (mx - offX) / SC, ay = (my - offY) / SC; let best = null, bz = -1;
+  for (const z of ZONES) for (const g of z.geo){ const y = (ay + g.z - OY) / SY, x = (ax - OX - y * BX) / SX; if (x >= g.x0 && x <= g.x1 && y >= g.y0 && y <= g.y1 && g.z > bz){ best = z; bz = g.z; } }
+  return best;
+}
+const tip = $('#tip');
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top; const z = zoneAt(mx, my);
+  cv.style.cursor = z ? 'pointer' : 'default';
+  if (!z){ tip.style.display = 'none'; return; }
+  const i = curIdx(), l = ST[z.id][i];
+  tip.innerHTML = `<div class="t1">${z.name} <span class="mono" style="color:var(--accent);font-size:10px">${z.en}</span> · <span style="color:${l ? LVHEX[l] : '#46c046'}">${LVI[l]}</span> ${LV[l]}</div><div class="t2">${z.where}<br>${z.key.label}：${fmtKey(z, S[z.key.arr][i])}${z.key.unit.trim()}<br>${z.sub(i)}<br><span style="color:var(--muted)">单击看区域体检 · 双击进入详情</span></div>`;
+  tip.style.display = 'block';
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = clamp(mx + 14, 4, CW - tw - 4) + 'px'; tip.style.top = clamp(my + 14, 4, CH - th - 4) + 'px';
+});
+cv.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); const z = zoneAt(e.clientX - r.left, e.clientY - r.top); if (z) select(z.id); });
+cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); const z = zoneAt(e.clientX - r.left, e.clientY - r.top); if (z) location.hash = '#/zone/' + z.id; });
+
+/* ============================================================
+   6. 面板
+   ============================================================ */
+const tagHTML = (l, pass) => `<span class="tag"><i style="color:${l ? LVHEX[l] : '#46c046'}">${LVI[l]}</i>${l ? LV[l] : (pass ? 'PASS' : '正常')}</span>`;
+const badgeHTML = l => `<i style="color:${l ? LVHEX[l] : '#46c046'}">${LVI[l]}</i>${LV[l]}`;
+
+function buildCards(){
+  const box = $('#cards'); box.innerHTML = '';
+  for (const z of ZONES){
+    const el = document.createElement('div'); el.className = 'card'; el.dataset.zone = z.id; el.tabIndex = 0;
+    el.innerHTML = `<div class="c-head"><span class="c-ico">${iconSVG(z.icon)}</span><div class="c-tt"><div class="c-name">${z.name}<span class="en">${z.en}</span></div><div class="c-duty">${z.duty}</div></div><span class="badge"></span></div>
+      <div class="c-main"><span class="big"></span><span class="c-unit"></span></div>
+      <div class="c-sub"></div>
+      <svg class="c-spark" preserveAspectRatio="none" viewBox="0 0 120 16"></svg>
+      <div class="c-last"><b></b><span class="txt"></span><i class="caret"></i></div>`;
+    el.addEventListener('click', () => select(z.id));
+    el.addEventListener('dblclick', () => { location.hash = '#/zone/' + z.id; });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') select(z.id); });
+    box.appendChild(el);
+    z.ui = {el, badge: el.querySelector('.badge'), big: el.querySelector('.big'), unit: el.querySelector('.c-unit'), sub: el.querySelector('.c-sub'), spark: el.querySelector('.c-spark'), t: el.querySelector('.c-last b'), txt: el.querySelector('.c-last .txt'), evId: -1, full: '', shown: 0, lvl: -1};
+  }
+}
+function cardSpark(z, i){
+  const a = S[z.key.arr], [w1, , w3] = z.key.thr; let s = '';
+  for (let b = 0; b < 12; b++){
+    const i0 = i - (11 - b) * 5; let v = 0, n = 0; for (let k = 0; k < 5; k++){ const j = i0 - k; if (j >= 0){ v += a[j]; n++; } } if (!n) continue; v /= n;
+    const h = z.key.op === '>' ? clamp(v / (w3 * 1.1), 0.04, 1) : clamp((100 - v) / (100 - w3 + 10), 0.04, 1);
+    const l = lvlOf(z, v); const bh = Math.max(1, h * 15);
+    s += `<rect x="${b * 10 + 1}" y="${16 - bh}" width="8" height="${bh}" rx="1" fill="${l ? LVHEX[l] : (b === 11 ? ACC : '#2a3546')}"/>`;
+  }
+  return s;
+}
+function lastEventFor(zid){ for (let k = EV.length - 1; k >= 0; k--){ const e = EV[k]; if (e.t <= simT && e.zone === zid) return e; } return null; }
+
+function updateCards(i){
+  for (const z of ZONES){
+    const u = z.ui, l = ST[z.id][i];
+    if (u.lvl !== l){ u.el.classList.remove('l1', 'l2', 'l3'); if (l) u.el.classList.add('l' + l); u.badge.innerHTML = badgeHTML(l); u.lvl = l; }
+    u.big.textContent = fmtKey(z, S[z.key.arr][i]) + (z.key.unit === '%' ? '%' : '');
+    u.unit.textContent = (z.key.unit === '%' ? '' : z.key.unit.trim() + ' ') + z.key.short;
+    u.sub.textContent = z.sub(i);
+    u.spark.innerHTML = cardSpark(z, i);
+    const e = lastEventFor(z.id);
+    if ((e ? e.id : -2) !== u.evId){
+      u.evId = e ? e.id : -2; u.t.textContent = e ? hhmm(e.t) : '--:--';
+      u.full = e ? e.text : '待命中，暂无事件'; u.shown = playing ? 0 : u.full.length; u.txt.textContent = u.full.slice(0, u.shown);
+    }
+  }
+}
+setInterval(() => { for (const z of ZONES){ const u = z.ui; if (u && u.shown < u.full.length){ u.shown += 1; u.txt.textContent = u.full.slice(0, u.shown); } } }, 28);
+
+function select(id){
+  selId = id;
+  for (const z of ZONES) z.ui.el.classList.toggle('sel', z.id === id);
+  const z = ZMAP[id];
+  $('#dTitle').innerHTML = `区域体检 · ${z.name}<span class="en">${z.en}</span>`;
+  $('#dDuty').textContent = `${z.duty} · 主指标：${z.key.label}（${z.key.op}${z.key.thr.join(' / ')}${z.key.unit.trim()}）`;
+  $('#dSrc').innerHTML = `<b>数据来源：</b>${z.src} · <b>接入：</b>${z.phase}（当前为模拟数据）`;
+  const go = $('#dGo'); go.href = '#/zone/' + id; go.textContent = ZDETAIL[id] ? '进入详情 →' : '详情（规划中）'; go.classList.toggle('soon', !ZDETAIL[id]);
+  updateDetail(curIdx()); drawSpark();
+}
+function updateDetail(i){
+  const z = ZMAP[selId], l = ST[z.id][i];
+  $('#dBadge').innerHTML = badgeHTML(l);
+  const tiles = [[z.key.short, fmtKey(z, S[z.key.arr][i]), z.key.unit.trim()], ...z.tiles(i)];
+  $('#dTiles').innerHTML = tiles.map(([a, b, c]) => `<div class="tile"><div class="tl">${a}</div><div class="tv">${b}<small>${c}</small></div></div>`).join('');
+  const rows = [[`${z.key.label} ${z.key.op} ${z.key.thr[0]}${z.key.unit.trim()}`, fmtKey(z, S[z.key.arr][i]) + z.key.unit, l], ...z.checks(i)];
+  $('#dChecks').innerHTML = rows.map(([a, b, c]) => `<li><span>${a}</span><span class="cv">${b}</span>${tagHTML(c, true)}</li>`).join('');
+}
+
+/* 区域体检小走势（含阈值线） */
+let sparkHover = null;
+function drawSpark(){
+  const svg = $('#spark'), W = svg.clientWidth, H = svg.clientHeight; if (W < 40) return;
+  const z = ZMAP[selId], a = S[z.key.arr], i = curIdx(); const m = {l:30, r:56, t:8, b:16}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const [w1, w2, w3] = z.key.thr;
+  let ymax = z.key.op === '<' ? 100 : Math.max(w3 * 1.15, ...Array.from(a.slice(0, i + 1)));
+  ymax = Math.ceil(ymax / 5) * 5;
+  const ymin = z.key.op === '<' ? Math.min(40, Math.floor(Math.min(...Array.from(a.slice(0, i + 1))) / 10) * 10) : 0;
+  const tx = t => m.l + (t - T0) / M * iw, ty = v => m.t + ih - (v - ymin) / (ymax - ymin) * ih;
+  let s = `<line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${ty(ymin)}" y2="${ty(ymin)}"/>`;
+  for (const h of [6, 12, 18, 24]) s += `<text class="ax" x="${tx(h * 60)}" y="${H - 3}" text-anchor="middle">${String(h).padStart(2, '0')}</text>`;
+  s += `<text class="ax" x="${m.l - 5}" y="${ty(ymax) + 4}" text-anchor="end">${ymax}</text><text class="ax" x="${m.l - 5}" y="${ty(ymin) + 3}" text-anchor="end">${ymin}</text>`;
+  [w1, w2, w3].forEach((v, k) => { if (v < ymin || v > ymax) return; s += `<line class="thr" x1="${m.l}" x2="${m.l + iw}" y1="${ty(v)}" y2="${ty(v)}" stroke="${LVHEX[k + 1]}" opacity=".65"/><text class="thrt" x="${m.l + iw + 4}" y="${ty(v) + 3}">${LV[k + 1]} ${z.key.op}${v}</text>`; });
+  let d = ''; for (let j = 0; j <= i; j += 3) d += (d ? 'L' : 'M') + tx(T0 + j).toFixed(1) + ',' + ty(clamp(a[j], ymin, ymax)).toFixed(1);
+  d += 'L' + tx(T0 + i).toFixed(1) + ',' + ty(clamp(a[i], ymin, ymax)).toFixed(1);
+  s += `<path class="ln" d="${d}" stroke="${ACC}"/>`;
+  s += `<circle cx="${tx(T0 + i)}" cy="${ty(clamp(a[i], ymin, ymax))}" r="4" fill="${ACC}" stroke="#0e131d" stroke-width="2"/>`;
+  if (sparkHover !== null && sparkHover <= i){ const j = sparkHover; s += `<line class="hv" x1="${tx(T0 + j)}" x2="${tx(T0 + j)}" y1="${m.t}" y2="${m.t + ih}"/><circle cx="${tx(T0 + j)}" cy="${ty(clamp(a[j], ymin, ymax))}" r="3.5" fill="#e6ebf2"/><text class="dl" x="${clamp(tx(T0 + j) + 6, m.l, m.l + iw - 70)}" y="${m.t + 10}">${hhmm(T0 + j)} ${fmtKey(z, a[j])}${z.key.unit.trim()}</text>`; }
+  svg.innerHTML = s;
+  svg._geo = {m, iw};
+}
+$('#spark').addEventListener('mousemove', e => { const svg = e.currentTarget, g = svg._geo; if (!g) return; const r = svg.getBoundingClientRect(); const j = Math.round((e.clientX - r.left - g.m.l) / g.iw * M); sparkHover = j >= 0 && j <= curIdx() ? j : null; drawSpark(); });
+$('#spark').addEventListener('mouseleave', () => { sparkHover = null; drawSpark(); });
+
+/* 规则面板 */
+function buildRules(){
+  $('#hard').innerHTML = ZONES.map(z => `<div class="rrow" data-z="${z.id}"><span class="rn">${z.name}.${z.key.label}</span><span class="rt">${z.key.op}${z.key.thr.join(' / ')}${z.key.unit.trim()}</span><span class="rv"></span><span class="rtag"></span></div>`).join('');
+  $('#soft').innerHTML = [['排队在涨还是在消？', '近 15 分钟斜率'], ['是不是航班扎堆？', '对照航班计划'], ['加开来不来得及？', '后 60 分钟预测'], ['要不要跨区调人？', '在岗冗余']]
+    .map(([a, b]) => `<div class="srow"><span>${a}</span><span>${b}</span></div>`).join('') + `<div class="srow" style="margin-top:6px;color:var(--muted)"><span># 一期由值班员判断；三期可让模型先写一句，人来确认</span></div>`;
+  $('#pipe').innerHTML = ['数据校验', '硬阈值', '趋势预判', '值班员确认', '处置建议'].map((t, k) => (k ? '<i>→</i>' : '') + `<span class="chip">${t}</span>`).join('');
+}
+function updateRules(i){
+  for (const row of document.querySelectorAll('#hard .rrow')){ const z = ZMAP[row.dataset.z], l = ST[z.id][i]; row.children[2].textContent = fmtKey(z, S[z.key.arr][i]); row.children[3].innerHTML = tagHTML(l, true); }
+}
+let pipeTimer = null;
+function pulsePipe(){
+  const chips = [...document.querySelectorAll('#pipe .chip')]; chips.forEach(c => c.classList.remove('on'));
+  clearTimeout(pipeTimer); let k = 0;
+  const step = () => { if (k > 0) chips[k - 1].classList.remove('on'); if (k < chips.length){ chips[k].classList.add('on'); k++; pipeTimer = setTimeout(step, 220); } else chips[chips.length - 1].classList.add('on'); };
+  step();
+}
+
+/* 日志 */
+let logCount = -1;
+function updateLog(){
+  let n = 0; while (n < EV.length && EV[n].t <= simT) n++;
+  if (n === logCount) return;
+  const grew = n > logCount && logCount >= 0 && n - logCount <= 3;
+  if (grew && playing && EV.slice(logCount, n).some(e => e.kind === 'alert')) pulsePipe();
+  logCount = n;
+  const list = EV.slice(Math.max(0, n - 80), n).reverse();
+  $('#log').innerHTML = list.map((e, k) => {
+    const col = e.kind === 'alert' ? `style="color:${LVHEX[e.level]}"` : '';
+    return `<li class="${grew && k < 2 ? 'fresh' : ''}"><time>${hhmm(e.t)}</time><span class="k ${e.kind}" ${col}>${KNAME[e.kind]}</span><span><span class="z">${ZMAP[e.zone].name}</span>${e.text}</span></li>`;
+  }).join('');
+  const alerts = EV.slice(0, n).filter(e => e.kind === 'alert').length, acts = EV.slice(0, n).filter(e => e.kind === 'action').length;
+  $('#logMeta').textContent = `今日 ${n} 条 · 告警 ${alerts} · 处置 ${acts}`;
+}
+
+/* 分时客流曲线 */
+let chartHover = null;
+const chartWrap = $('#chartWrap'), chartTip = $('#chartTip');
+function drawChart(){
+  const svg = $('#chart'), W = chartWrap.clientWidth, H = chartWrap.clientHeight; if (W < 80 || H < 60) return;
+  const m = {l:46, r:92, t:12, b:22}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const tx = t => m.l + (t - T0) / M * iw, ty = v => m.t + ih - v / Y_MAX * ih;
+  let s = '';
+  for (let v = 0; v <= Y_MAX; v += Y_STEP) s += `<line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${ty(v)}" y2="${ty(v)}"/><text class="ax" x="${m.l - 6}" y="${ty(v) + 3}" text-anchor="end">${v >= 1000 ? v / 1000 + 'k' : v}</text>`;
+  for (let h = 6; h <= 24; h += 3) s += `<text class="ax" x="${tx(h * 60)}" y="${H - 6}" text-anchor="middle">${String(h).padStart(2, '0')}:00</text>`;
+  if (simT >= 840){ const x0 = tx(840), x1 = tx(Math.min(940, simT)); s += `<rect class="band" x="${x0}" y="${m.t}" width="${x1 - x0}" height="${ih}"/><text class="band-t" x="${x0 + 4}" y="${m.t + 11}">航路流控</text>`; }
+  const planPath = arr => { let d = ''; for (let b = 0; b < NB; b++) d += (b ? 'L' : 'M') + tx(T0 + b * 15 + 7.5).toFixed(1) + ',' + ty(arr[b]).toFixed(1); return d; };
+  s += `<path class="ln dep plan" d="${planPath(HB.depP)}"/><path class="ln arr plan" d="${planPath(HB.arrP)}"/>`;
+  const cur = Math.floor((simT - T0) / 15), el = Math.floor(simT - T0) - cur * 15;
+  const actual = (bins, minArr) => { const pts = []; for (let b = 0; b < Math.min(cur, NB); b++) pts.push([tx(T0 + b * 15 + 7.5), bins[b]]);
+    if (el >= 3 && cur < NB){ let sm = 0; for (let k = 0; k < el; k++) sm += minArr[cur * 15 + k]; pts.push([tx(simT), sm * 60 / el]); } return pts; };
+  const dA = actual(HB.depA, S.depAct), aA = actual(HB.arrA, S.arrAct);
+  const pth = pts => pts.map((p, k) => (k ? 'L' : 'M') + p[0].toFixed(1) + ',' + ty(p[1]).toFixed(1)).join('');
+  if (dA.length > 1) s += `<path class="ln dep" d="${pth(dA)}"/>`;
+  if (aA.length > 1) s += `<path class="ln arr" d="${pth(aA)}"/>`;
+  const endLab = (pts, name, cls) => { if (!pts.length) return null; const p = pts[pts.length - 1]; return {x: p[0], y: ty(p[1]), t: `${name} ${fmt(p[1])}`, cls}; };
+  const labs = [endLab(dA, '出发', 'dep'), endLab(aA, '到达', 'arr')].filter(Boolean);
+  if (labs.length === 2 && Math.abs(labs[0].y - labs[1].y) < 13){ const mid = (labs[0].y + labs[1].y) / 2; const up = labs[0].y < labs[1].y ? 0 : 1; labs[up].y = mid - 7; labs[1 - up].y = mid + 7; }
+  for (const L of labs){ s += `<circle cx="${L.x}" cy="${L.y}" r="3" fill="var(--${L.cls})" stroke="#0e131d" stroke-width="2"/><text class="dl" x="${L.x + 7}" y="${L.y + 4}">${L.t}</text>`; }
+  s += `<line class="now" x1="${tx(simT)}" x2="${tx(simT)}" y1="${m.t}" y2="${m.t + ih}"/>`;
+  if (chartHover !== null){ const b = chartHover, x = tx(T0 + b * 15 + 7.5); s += `<line class="hv" x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t + ih}"/>`;
+    for (const [arr, cls] of [[HB.depP, 'dep'], [HB.arrP, 'arr']]) s += `<circle cx="${x}" cy="${ty(arr[b])}" r="3" fill="none" stroke="var(--${cls})" stroke-width="1.5"/>`;
+    if (b < cur) for (const [arr, cls] of [[HB.depA, 'dep'], [HB.arrA, 'arr']]) s += `<circle cx="${x}" cy="${ty(arr[b])}" r="3.5" fill="var(--${cls})" stroke="#0e131d" stroke-width="1.5"/>`; }
+  svg.innerHTML = s; svg._geo = {m, iw, tx};
+}
+$('#chart').addEventListener('mousemove', e => {
+  const svg = e.currentTarget, g = svg._geo; if (!g) return; const r = svg.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const b = Math.floor((mx - g.m.l) / g.iw * NB); if (b < 0 || b >= NB){ chartHover = null; chartTip.style.display = 'none'; drawChart(); return; }
+  chartHover = b; drawChart();
+  const done = b < Math.floor((simT - T0) / 15);
+  chartTip.innerHTML = `<div class="t1">${hhmm(T0 + b * 15)}–${hhmm(T0 + b * 15 + 15)} <span style="color:var(--muted);font-weight:400">人/小时</span></div><div class="t2">
+    <span style="color:var(--dep)">■</span> 出发 实际 ${done ? fmt(HB.depA[b]) : '—'} · 计划 ${fmt(HB.depP[b])}<br>
+    <span style="color:var(--arr)">■</span> 到达 实际 ${done ? fmt(HB.arrA[b]) : '—'} · 计划 ${fmt(HB.arrP[b])}</div>`;
+  chartTip.style.display = 'block'; const tw = chartTip.offsetWidth, th = chartTip.offsetHeight;
+  chartTip.style.left = clamp(mx + 12, 4, chartWrap.clientWidth - tw - 4) + 'px'; chartTip.style.top = clamp(my - th - 8, 4, chartWrap.clientHeight - th - 4) + 'px';
+});
+$('#chart').addEventListener('mouseleave', () => { chartHover = null; chartTip.style.display = 'none'; drawChart(); });
+
+/* 顶栏 */
+const mBar = $('#mBar'); mBar.innerHTML = '<i></i>'.repeat(40); const segs = [...mBar.children];
+$('#mPlan').textContent = fmt(PLAN_DAY);
+function updateTop(i){
+  const pax = valAt(S.paxCum), pct = pax / PLAN_DAY;
+  $('#mPax').textContent = fmt(pax); $('#mPct').textContent = (pct * 100).toFixed(1) + '%';
+  const lit = Math.round(pct * 40); segs.forEach((s, k) => s.classList.toggle('on', k < lit));
+  const y = YEAR_BASE + pax / 1e4; $('#mYear').textContent = y.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' 万';
+  $('#mYearBar').style.width = (y / 3000 * 100).toFixed(2) + '%';
+  $('#clock').textContent = hhmm(simT);
+  if (!sliderDrag) $('#slider').value = Math.floor(simT);
+  const inside = S.ciQ[i] + S.secQ[i] + S.occ[i] + S.trPresent[i] + S.bagPresent[i] + S.taxiQ[i];
+  $('#sceneMeta').textContent = `楼内约 ${fmt(inside)} 人 · 小人按人数缩放 · 点区域或名牌看体检`;
+}
+
+/* 控件 */
+let sliderDrag = false;
+const btnPlay = $('#btnPlay');
+function setPlaying(p){ playing = p; btnPlay.textContent = p ? '⏸ 暂停' : '▶ 播放'; btnPlay.classList.toggle('on', !p); }
+btnPlay.addEventListener('click', () => setPlaying(!playing));
+document.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.sp; document.querySelectorAll('[data-sp]').forEach(x => x.classList.toggle('on', x === b)); if (!playing) setPlaying(true); }));
+document.querySelector('[data-sp="60"]').classList.add('on');
+const slider = $('#slider');
+slider.addEventListener('input', () => { sliderDrag = true; simT = +slider.value; walkers = []; tick(true); });
+slider.addEventListener('change', () => { sliderDrag = false; });
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space'){ e.preventDefault(); setPlaying(!playing); }
+  if (e.key === 'Escape' && view === 'zone') location.hash = '#/';
+  if (e.key === 'ArrowRight'){ simT = Math.min(T1 - 1, simT + 10); tick(true); }
+  if (e.key === 'ArrowLeft'){ simT = Math.max(T0, simT - 10); tick(true); }
+});
+
+/* ============================================================
+   8. 区域详情页（hash 路由：#/zone/<id>，可带 ?t=HH:MM 定位到某一时刻）
+      目前只做了"中转"；其他区域先放规划清单。
+   ============================================================ */
+let view = 'overview', zoneId = null, flowSel = 'dd1', zHover = null, zLogCount = -1, zRO = null;
+const vO = $('#vOverview'), vZ = $('#vZone');
+const ZDETAIL = {transfer: true};
+const ZPLAN = {
+  aoc:['当日航班执行甘特：计划 / 实际起降、延误原因分布', '各区域告警联动时间线：谁先亮、谁跟着亮', '整点播报存档，可回看任一时刻'],
+  checkin:['6 个值机岛逐岛开放柜台与排队（国内 E/F/J/K 岛 80 个柜台，国际 G/H 岛 40 个）', '自助值机、自助行李托运占比', '按航司的柜台分配与高峰时段'],
+  security:['A / B 区通道开放与排队预测', '国际出发安检', '数据敏感：页面只放汇总数，二期后段单独审批后再做'],
+  gates:['四条指廊 + 连廊分段在候人数（国内 01–61 号登机口）', '登机口占用时间轴', '一层远机位候机厅与摆渡车（总览图里还没有）'],
+  baggage:['18 个转盘逐盘首件 / 末件（国内 12、国际 6）', '到港航班—转盘对应表', '超时转盘自动置顶'],
+  ground:['出租车蓄车与排队、网约车', '地铁、城铁班次与末班倒计时', '机场大巴线路与发车'],
+  staff:['19 个点位排班 vs 实到', '缺岗时间轴与机动组派出记录', '和各区告警对照：缺岗是不是排队的起因'],
+};
+
+/* 中转细分（模拟）：A/B 两侧占比、V11/V12 休息区在场、四类流程构成 */
+const FLOWS = [
+ {id:'dd0', name:'国内转国内 · 无托运', col:'#2dd4e6',
+  steps:['廊桥或摆渡车进楼', '二层中转服务台办理', '对应登机口候机', '登机'],
+  path:[[12.6, 6.2, 1], [18.6, 6.2], [18.6, 5.85, 2], [18.6, 6.4], [46, 6.4, 3], [52.6, 6.4, 4]]},
+ {id:'dd1', name:'国内转国内 · 有托运', col:'#3987e5',
+  steps:['廊桥或摆渡车进楼', '行李提取厅提取行李', '中转柜台办理托运', '中转安检', '对应登机口候机'],
+  path:[[12.6, 6.6, 1], [26.1, 6.6], [26.1, 9.4, 2], [26.1, 10.5], [21.6, 10.5], [21.6, 10.0, 3], [21.6, 7.75, 4], [21.6, 6.6], [50, 6.6, 5]]},
+ {id:'di', name:'国内转国际', col:'#c0559a', off:[4, 5],
+  steps:['廊桥或摆渡车进楼', '二层中转服务台办理', '专用扶梯直达四层中转通道', '检疫 · 海关 · 边防', '四层国际候机'],
+  path:[[52.6, 6.2, 1], [45.4, 6.2], [45.4, 5.85, 2], [45.4, 6.4], [28.9, 6.4], [28.9, 5.95, 3]]},
+ {id:'id', name:'国际转国内', col:'#a78bfa',
+  steps:['三层到达，下至二层', '检疫 · 边防', '提取行李 · 海关 · 动植检', '中转柜台办理托运', '中转安检', '对应登机口候机'],
+  path:[[32, 12.35, 1], [32, 11.3, 2], [32, 9.4, 3], [32, 10.5], [42.4, 10.5], [42.4, 10.0, 4], [42.4, 7.75, 5], [42.4, 6.6], [47, 6.6, 6]]},
+];
+const TRX = {aShare:new Float32Array(M), lounge:new Float32Array(M), bin:new Float32Array(NB), bmax:1};
+(function(){
+  const cum = FLOWS.map(() => 0); FLOWS.forEach(f => f.cum = new Float32Array(M));
+  for (let i = 0; i < M; i++){
+    const t = T0 + i, intl = onWin(t, 630, 700, 10);
+    TRX.aShare[i] = clamp(0.55 + 0.06 * Math.sin(t / 83) - 0.25 * intl, 0.2, 0.8);   // 国际到港时 B 区更忙
+    TRX.lounge[i] = 2 + 0.3 * sumBack(S.trServed, i, 40);
+    const w = [0.42, 0.26, 0.12 + 0.03 * Math.sin(t / 140), 0.20 + 0.9 * intl], sw = w[0] + w[1] + w[2] + w[3];
+    FLOWS.forEach((f, k) => { cum[k] += S.trIn[i] * w[k] / sw; f.cum[i] = cum[k]; });
+  }
+  for (let b = 0; b < NB; b++) for (let k = 0; k < 15; k++) TRX.bin[b] += S.trIn[b * 15 + k];
+  TRX.bmax = Math.max(...TRX.bin);
+})();
+
+/* 2F 中转区平面（俯视，沿用总览的 x/y 坐标，只截 x 12–53、y 4.2–16.2） */
+const QX = x => +((x - 12) * 24).toFixed(1), QY = y => +((y - 4.2) * 40).toFixed(1);
+const QR = (x0, y0, x1, y1, a = '') => `<rect x="${QX(x0)}" y="${QY(y0)}" width="${(QX(x1) - QX(x0)).toFixed(1)}" height="${(QY(y1) - QY(y0)).toFixed(1)}" ${a}/>`;
+const QT = (x, y, t, a = '') => `<text x="${QX(x)}" y="${QY(y)}" ${a}>${t}</text>`;
+const ROI = {a:[20.05, 8.45, 22.45, 10.8], b:[41.55, 8.45, 43.95, 10.8], l:[29.85, 5.1, 35.15, 7.1]};
+const TSL = {a:[], b:[], l:[]};
+for (const x of [21.35, 21.75, 22.15]) for (let r = 0; r < 7; r++) TSL.a.push([x, 8.85 + r * 0.27]);
+for (const x of [42.65, 42.25, 41.85]) for (let r = 0; r < 7; r++) TSL.b.push([x, 8.85 + r * 0.27]);
+for (const y of [6.2, 6.65]) for (let k = 0; k < 11; k++) TSL.l.push([30.3 + k * 0.44, y]);
+
+function planStatic(){
+  const W = 'fill="#1c2538" stroke="#2a3546"';
+  let s = QR(12, 4.2, 53, 14.7, 'fill="#0a0e16"');
+  s += QR(12, 5, 53, 7.2, W) + QR(12.2, 7.2, 13.8, 14.7, W) + QR(51.2, 7.2, 52.8, 14.7, W);          // 连廊、东西连接廊
+  s += QR(13.8, 13.4, 20, 14.7, 'fill="#161e2c"') + QR(44, 13.4, 51.2, 14.7, 'fill="#161e2c"');
+  s += QR(20, 7.2, 44, 14.7, 'fill="#141b29" stroke="#2a3546"');                                       // 主楼 2F
+  s += QR(22.3, 7.4, 41.7, 10.75, 'fill="#1a2436" stroke="#26314a"');                                 // 行李提取厅
+  for (const cr of CARS) s += QR(cr.x - 0.28, 8.2, cr.x + 0.28, 10.2, `rx="3" fill="${cr.g === 'I' ? '#3a5466' : '#3a4456'}"`);
+  s += QR(29.4, 10.95, 34.6, 12.6, 'fill="#22264a" stroke="#4a4f86" stroke-dasharray="3 3"');        // 国际到达联检
+  s += QR(22.3, 12.9, 41.7, 14.7, 'fill="#111826"');                                                    // 迎客厅
+  s += QR(30, 5.25, 35, 6.95, 'fill="rgba(192,85,154,.2)" stroke="#c0559a"');                         // V11/V12
+  s += QR(28.3, 5.25, 29.5, 5.95, 'fill="#2c3456" stroke="#4a5480"');                                  // 去 4F 的专用扶梯
+  for (const x0 of [17.6, 44.4]) s += QR(x0, 5.2, x0 + 2, 5.75, 'fill="#45546f" stroke="#c0559a"');   // 西 / 东中转服务台
+  for (const [sx, dx] of [[20.25, 20.25], [41.75, 43.0]]){                                              // 中转安检 + 中转柜台
+    s += QR(sx, 7.35, sx + 2, 8.15, 'fill="#36425a" stroke="#4a5875"');
+    s += QR(dx, 8.6, dx + 0.75, 10.6, 'fill="#45546f"') + QR(dx, 8.6, dx + 0.75, 8.75, 'fill="#c0559a"');
+  }
+  for (const k in ROI){ const [a, b, c, d] = ROI[k]; s += QR(a, b, c, d, 'class="roi"'); }
+  s += QT(12.3, 4.75, '← 西二指廊 15–27', 'class="sm"') + QT(52.7, 4.75, '东二指廊 36–49 →', 'class="sm" text-anchor="end"');
+  s += QT(23.5, 4.75, '连廊登机口 28–35', 'class="sm" text-anchor="middle"') + QT(28.9, 4.75, '↑4F 中转通道', 'class="sm" text-anchor="middle"');
+  s += QT(18.6, 4.75, '西中转服务台', 'class="lb" text-anchor="middle"') + QT(45.4, 4.75, '东中转服务台', 'class="lb" text-anchor="middle"');
+  s += QT(30.2, 5.65, 'V11/V12 中转休息区', 'class="sm"');
+  s += QT(25.2, 7.95, 'A区 2–7', 'class="sm" text-anchor="middle"') + QT(32, 7.95, '国际 8–10·13–15', 'class="sm" text-anchor="middle"') + QT(38.8, 7.95, 'B区 16–21', 'class="sm" text-anchor="middle"');
+  s += QT(21.25, 7.9, '中转安检', 'class="sm" text-anchor="middle"') + QT(42.75, 7.9, '中转安检', 'class="sm" text-anchor="middle"');
+  s += QT(21.25, 11.25, 'A区（西）中转柜台', 'class="lb" text-anchor="middle"') + QT(42.75, 11.25, 'B区（东）中转柜台', 'class="lb" text-anchor="middle"');
+  s += QT(32, 11.7, '国际到达联检', 'class="lb" text-anchor="middle"') + QT(32, 12.35, '三层到达 ↓ 下至二层', 'class="sm" text-anchor="middle"');
+  s += QT(32, 13.55, '到达迎客厅 → GTC 交通中心', 'class="sm" text-anchor="middle"');
+  s += QT(32, 14.3, '示意 · 不按比例 · 服务台、柜台、中转安检、扶梯为示意位置，待现场核对', 'class="sm" text-anchor="middle"');
+  s += QT(14.0, 14.3, '↓ 西一指廊 01–14', 'class="sm"') + QT(51.0, 14.3, '东一指廊 50–61 ↓', 'class="sm" text-anchor="end"');
+  return s + '<g id="pFlow"></g><g id="pDyn"></g>';
+}
+function drawFlow(){
+  const f = FLOWS.find(x => x.id === flowSel), d = f.path.map((p, k) => (k ? 'L' : 'M') + QX(p[0]) + ',' + QY(p[1])).join('');
+  let s = `<defs><marker id="fh" viewBox="0 0 6 6" refX="4" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L6,3L0,6z" fill="${f.col}"/></marker></defs>`;
+  s += `<path d="${d}" fill="none" stroke="${f.col}" stroke-width="7" opacity=".16" stroke-linejoin="round"/>`;
+  s += `<path d="${d}" fill="none" stroke="${f.col}" stroke-width="2" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#fh)"><animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.8s" repeatCount="indefinite"/></path>`;
+  for (let k = 0; k < 4; k++) s += `<circle r="4" fill="${f.col}" stroke="#0a0e16" stroke-width="1.5"><animateMotion dur="7s" begin="${-k * 1.75}s" repeatCount="indefinite" path="${d}"/></circle>`;
+  for (const p of f.path) if (p[2]) s += `<circle cx="${QX(p[0])}" cy="${QY(p[1])}" r="8" fill="#0a0e16" stroke="${f.col}" stroke-width="1.5"/><text x="${QX(p[0])}" y="${QY(p[1]) + 3.5}" text-anchor="middle" style="fill:${f.col};font-size:10px;font-weight:700">${p[2]}</text>`;
+  $('#pFlow').innerHTML = s;
+  document.querySelectorAll('#zFlows .flow').forEach(el => el.classList.toggle('on', el.dataset.f === flowSel));
+}
+
+function transferHTML(){
+  return `<div class="zv-kpis" id="zKpis"></div>
+  <div class="panel zv-plan"><div class="p-head"><span class="p-title">2F 中转区 · 平面示意<span class="en">TRANSFER · 2F</span></span><span class="p-meta">虚线框 = 客流相机计数区（一期 3 台）· 点右侧流程看动线</span></div>
+    <div class="plan-wrap"><svg id="zPlan" viewBox="0 0 984 420" preserveAspectRatio="xMidYMid meet"></svg></div></div>
+  <div class="panel zv-flows"><div class="p-head"><span class="p-title">四类中转流程<span class="en">FLOWS</span></span><span class="p-meta">今日人次 · 构成为模拟</span></div>
+    <ul class="flows" id="zFlows"></ul>
+    <div class="pipe-note"><b style="color:var(--text-2);font-weight:600">待现场核对</b>　① 西 / 东中转服务台与行李区中转柜台的实际点位　② 去四层中转通道的专用扶梯位置　③ 相机安装点、计数区大小（约 5m×5m，层高约 2.5m）　④ “到访”口径：按进框人次还是按办理笔数</div>
+    <div class="pipe-note">流程依据《航站楼准入培训》中转旅客流程。行李直挂、下站登机牌已打印的旅客可跳过办理步骤；国内转国际、国际转国内也分有无托运，这里各合并为一条。</div></div>
+  <div class="zv-bottom">
+    <div class="panel"><div class="p-head"><span class="p-title">分时到访与柜台前人数</span><span class="p-meta" id="zChartMeta"></span></div><div class="zc" id="zChartWrap"><svg id="zChart"></svg></div></div>
+    <div class="panel"><div class="p-head"><span class="p-title">中转值班记录<span class="en">LOG</span></span><span class="p-meta" id="zLogMeta"></span></div><ol id="zLog"></ol></div>
+    <div class="panel"><div class="p-head"><span class="p-title">数据接口 · 一期<span class="en">API</span></span><span class="p-meta">实时样例（模拟）</span></div><div class="api" id="zApi"></div></div>
+  </div>`;
+}
+function buildZoneView(id){
+  const z = ZMAP[id];
+  const head = `<div class="zv-head"><a class="zv-btn" href="#/">← 返回总览</a><span class="zv-title">${z.name}<span class="en">${z.en}</span></span><span class="badge" id="zBadge"></span><span class="zv-where">${z.where}</span><span class="zv-phase">${z.phase}接入 · 当前为模拟数据</span><span class="zv-sp"></span><button class="zv-btn" id="zCopy" title="复制带当前时刻的链接，对方打开就停在这一刻">复制此刻链接</button></div>`;
+  if (zRO){ zRO.disconnect(); zRO = null; }
+  if (!ZDETAIL[id]){
+    vZ.innerHTML = `<div class="zv">${head}<div class="zsoon"><h3>「${z.name}」详情页还在规划，准备放这些内容：</h3><ul>${ZPLAN[id].map(t => `<li>${t}</li>`).join('')}</ul>
+      <div style="color:var(--muted);font-size:12px">数据来源：${z.src}</div>
+      <div class="now"><a class="zv-btn" href="#/zone/transfer">先看已做好的「中转」详情 →</a><a class="zv-btn" href="#/">← 返回总览</a></div></div></div>`;
+  } else {
+    vZ.innerHTML = `<div class="zv">${head}${transferHTML()}</div>`;
+    $('#zPlan').innerHTML = planStatic();
+    $('#zFlows').innerHTML = FLOWS.map(f => `<li class="flow" data-f="${f.id}" style="--fc:${f.col}"><div class="f-top"><span class="f-sw"></span><span class="f-name">${f.name}</span><span class="f-n"><span class="fv">0</span><small>人次</small></span></div><div class="f-bar"><i></i></div>
+      <div class="f-steps">${f.steps.map((t, k) => { const off = f.off && f.off.includes(k + 1); return `<span class="${off ? 'off' : ''}"><b>${k + 1}</b>${t}${off ? '（四层，图外）' : ''}</span>`; }).join('')}</div></li>`).join('');
+    document.querySelectorAll('#zFlows .flow').forEach(el => el.addEventListener('click', () => { flowSel = el.dataset.f; drawFlow(); }));
+    drawFlow();
+    const svg = $('#zChart');
+    svg.addEventListener('mousemove', e => { const g = svg._geo; if (!g) return; const r = svg.getBoundingClientRect(); const b = Math.floor((e.clientX - r.left - g.m.l) / g.iw * NB); zHover = b >= 0 && b < NB ? b : null; drawZChart(curIdx()); });
+    svg.addEventListener('mouseleave', () => { zHover = null; drawZChart(curIdx()); });
+    zRO = new ResizeObserver(() => drawZChart(curIdx())); zRO.observe($('#zChartWrap'));
+  }
+  $('#zCopy').addEventListener('click', copyMoment);
+}
+
+function updateZoneView(i){
+  const b = $('#zBadge'); if (b) b.innerHTML = badgeHTML(ST[zoneId][i]);
+  if (zoneId === 'transfer') updateTransfer(i);
+}
+function updateTransfer(i){
+  const l = ST.transfer[i], a = S.trPresent[i] * TRX.aShare[i], bb = S.trPresent[i] - a, bOpen = S.trOpen[i] - 1;
+  const done = EV.filter(e => e.t <= simT && e.zone === 'transfer');
+  const kp = [
+    ['柜台前人数', fmt(S.trPresent[i]), '人', `A区 ${fmt(a)} · B区 ${fmt(bb)} · 线 >8 / 14 / 20`, l],
+    ['排队', fmt(S.trQ[i]), '人', `预计等 ${Math.round(S.trQ[i] / (S.trOpen[i] * TR_RATE))} 分钟`],
+    ['平均停留', S.trDwell[i].toFixed(1), '分', '体检线 ≤ 10 分'],
+    ['今日到访', fmt(S.trCum[i]), '人次', `近 1 小时 ${fmt(sumBack(S.trIn, i, 60))}`],
+    ['开放柜台', S.trOpen[i], '个', `A区 1 · B区 ${bOpen}`],
+    ['V11/V12 在场', fmt(TRX.lounge[i]), '人', '中转休息区'],
+    ['今日告警', done.filter(e => e.kind === 'alert').length, '次', `处置 ${done.filter(e => e.kind === 'action').length} 次`],
+  ];
+  $('#zKpis').innerHTML = kp.map(([t, v, u, s, lv]) => `<div class="kpi ${lv ? 'l' + lv : ''}"><div class="kl">${t}</div><div class="kv" ${lv ? `style="color:${LVHEX[lv]}"` : ''}>${v}<small>${u}</small></div><div class="ks">${s}</div></div>`).join('');
+  // 平面：小人 + 计数
+  let s = '';
+  const put = (arr, n) => { for (let k = 0; k < Math.min(Math.round(n), arr.length); k++) s += `<circle cx="${QX(arr[k][0])}" cy="${QY(arr[k][1])}" r="3.6" fill="${SHIRTS[k % SHIRTS.length]}"/>`; };
+  if (l) for (const k of ['a', 'b']){ const [x0, y0, x1, y1] = ROI[k]; s += QR(x0, y0, x1, y1, `fill="${hexA(LVHEX[l], 0.12)}" stroke="${LVHEX[l]}" stroke-width="1.5"`); }
+  put(TSL.a, a); put(TSL.b, bb); put(TSL.l, TRX.lounge[i]);
+  s += QT(21.25, 11.85, `柜台前 ${fmt(a)} 人`, 'class="cnt" text-anchor="middle"') + QT(42.75, 11.85, `柜台前 ${fmt(bb)} 人`, 'class="cnt" text-anchor="middle"');
+  s += QT(32.5, 4.75, `在场 ${fmt(TRX.lounge[i])} 人`, 'class="cnt" text-anchor="middle"');
+  $('#pDyn').innerHTML = s;
+  // 流程构成
+  const tot = FLOWS.reduce((m, f) => m + f.cum[i], 0) || 1;
+  document.querySelectorAll('#zFlows .flow').forEach(el => { const f = FLOWS.find(x => x.id === el.dataset.f); el.querySelector('.fv').textContent = fmt(f.cum[i]); el.querySelector('.f-bar i').style.width = (f.cum[i] / tot * 100).toFixed(1) + '%'; });
+  drawZChart(i); updateZLog(); updateApi(i, a);
+}
+
+function drawZChart(i){
+  const wrap = $('#zChartWrap'), svg = $('#zChart'); if (!wrap || !svg) return;
+  const W = wrap.clientWidth, H = wrap.clientHeight; if (W < 80 || H < 90) return;
+  const m = {l:38, r:70, t:10, b:20}, gap = 16, ihAll = H - m.t - m.b - gap, h1 = ihAll * 0.48, h2 = ihAll - h1, y2 = m.t + h1 + gap, iw = W - m.l - m.r;
+  const tx = t => m.l + (t - T0) / M * iw, cur = Math.floor((simT - T0) / 15);
+  const bmax = Math.ceil(TRX.bmax * 1.1 / 10) * 10, by = v => m.t + h1 - v / bmax * h1;
+  let pmax = 24; for (let j = 0; j <= i; j++) pmax = Math.max(pmax, S.trPresent[j]); pmax = Math.ceil(pmax * 1.08 / 5) * 5;
+  const py = v => y2 + h2 - v / pmax * h2;
+  let s = `<line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${m.t + h1}" y2="${m.t + h1}"/><line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${y2 + h2}" y2="${y2 + h2}"/>`;
+  s += `<text class="ax" x="${m.l - 5}" y="${m.t + 8}" text-anchor="end">${bmax}</text><text class="ax" x="${m.l - 5}" y="${y2 + 8}" text-anchor="end">${pmax}</text>`;
+  s += `<text class="thrt" x="${m.l + iw + 4}" y="${m.t + 10}">到访</text><text class="thrt" x="${m.l + iw + 4}" y="${m.t + 22}">人次/15分</text>`;
+  for (let h = 6; h <= 24; h += 3) s += `<text class="ax" x="${tx(h * 60)}" y="${H - 5}" text-anchor="middle">${String(h).padStart(2, '0')}:00</text>`;
+  const bw = Math.max(1, iw / NB - 1.5);
+  for (let b = 0; b <= Math.min(cur, NB - 1); b++){
+    let v = TRX.bin[b]; if (b === cur){ v = 0; for (let k = 0; k < Math.floor(simT - T0) - cur * 15; k++) v += S.trIn[cur * 15 + k]; }
+    const x = tx(T0 + b * 15) + 0.75; s += `<rect x="${x.toFixed(1)}" y="${by(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(m.t + h1 - by(v)).toFixed(1)}" fill="${b === zHover ? '#e6ebf2' : ACC}" opacity="${b === cur ? 0.45 : 0.8}"/>`;
+  }
+  [8, 14, 20].forEach((v, k) => { if (v > pmax) return; s += `<line class="thr" x1="${m.l}" x2="${m.l + iw}" y1="${py(v)}" y2="${py(v)}" stroke="${LVHEX[k + 1]}" opacity=".65"/><text class="thrt" x="${m.l + iw + 4}" y="${py(v) + 3}">${LV[k + 1]} >${v}</text>`; });
+  let d = ''; for (let j = 0; j <= i; j += 2) d += (d ? 'L' : 'M') + tx(T0 + j).toFixed(1) + ',' + py(S.trPresent[j]).toFixed(1);
+  d += 'L' + tx(T0 + i).toFixed(1) + ',' + py(S.trPresent[i]).toFixed(1);
+  s += `<path class="ln" d="${d}" stroke="#e6ebf2"/><circle cx="${tx(T0 + i)}" cy="${py(S.trPresent[i])}" r="3.5" fill="#e6ebf2" stroke="#0e131d" stroke-width="2"/>`;
+  s += `<text class="thrt" x="${m.l + 4}" y="${y2 + 9}">柜台前人数</text>`;
+  if (simT >= 638){ const x = tx(638); s += `<line class="now" x1="${x}" x2="${x}" y1="${m.t}" y2="${y2 + h2}" style="stroke:#a78bfa"/><text class="band-t" x="${x + 4}" y="${m.t + 10}">国际航班到港</text>`; }
+  s += `<line class="now" x1="${tx(simT)}" x2="${tx(simT)}" y1="${m.t}" y2="${y2 + h2}"/>`;
+  svg.innerHTML = s; svg._geo = {m, iw};
+  let meta;
+  if (zHover !== null && zHover <= cur){ let pk = 0; for (let k = 0; k < 15; k++){ const j = zHover * 15 + k; if (j <= i) pk = Math.max(pk, S.trPresent[j]); } meta = `${hhmm(T0 + zHover * 15)}–${hhmm(T0 + zHover * 15 + 15)} 到访 ${fmt(TRX.bin[zHover])} 人次 · 柜台前峰值 ${fmt(pk)} 人`; }
+  else { let pk = 0, pt = 0; for (let j = 0; j <= i; j++) if (S.trPresent[j] > pk){ pk = S.trPresent[j]; pt = j; } meta = `今日柜台前峰值 ${fmt(pk)} 人（${hhmm(T0 + pt)}）`; }
+  $('#zChartMeta').textContent = meta;
+}
+function updateZLog(){
+  const list = EV.filter(e => e.t <= simT && (e.zone === 'transfer' || (e.zone === 'staff' && /中转/.test(e.text))));
+  if (list.length === zLogCount) return; zLogCount = list.length;
+  $('#zLog').innerHTML = list.length ? list.slice().reverse().map(e => `<li><time>${hhmm(e.t)}</time><span class="k ${e.kind}" ${e.kind === 'alert' ? `style="color:${LVHEX[e.level]};border-color:currentColor"` : ''}>${KNAME[e.kind]}</span><span>${e.text}</span></li>`).join('') : '<li><span class="empty">到目前为止中转区没有事件。</span></li>';
+  $('#zLogMeta').textContent = `今日 ${list.length} 条`;
+}
+function updateApi(i, a){
+  const js = [['zone_id', '"transfer_counter_A"'], ['zone_geo', '{"floor":"2F","x":21.2,"y":9.6}'], ['ts', `"${hhmm(simT)}:00+08:00"`], ['granularity', '"15m"'],
+    ['count_in', Math.round(sumBack(S.trIn, i, 15) * TRX.aShare[i])], ['count_out', Math.round(sumBack(S.trServed, i, 15) * TRX.aShare[i])], ['present', Math.round(a)], ['avg_dwell_sec', Math.round(S.trDwell[i] * 60)]];
+  $('#zApi').innerHTML = `<pre>{\n${js.map(([k, v]) => `  <span class="kk">"${k}"</span>: <span class="vv">${v}</span>`).join(',\n')}\n}</pre>
+    <div class="ep"><b>GET</b>/api/v1/zones/{zone_id}/realtime</div>
+    <div class="ep"><b>GET</b>/api/v1/zones/{zone_id}/series?from=&amp;to=&amp;granularity=</div>
+    <div class="ep"><b>WS&nbsp;</b>/ws/zones（实时推送，孪生图用）</div>
+    <div class="note">3 个计数区：A区中转柜台、B区中转柜台、V11/V12。相机只输出数字、不存图像。字段与《中转区柜台客流采集与分析方案》数据字典一致；接真数据时只换这一层，页面不用改。</div>`;
+}
+
+function copyMoment(){
+  const url = `${location.href.split('#')[0]}${view === 'zone' ? '#/zone/' + zoneId : '#/'}?t=${hhmm(simT)}`;
+  const btn = $('#zCopy');
+  const ok = () => { btn.textContent = '已复制 ✓'; setTimeout(() => { btn.textContent = '复制此刻链接'; }, 1600); };
+  const fail = () => window.prompt('复制这个链接：', url);
+  try { navigator.clipboard.writeText(url).then(ok, fail); } catch (e) { fail(); }
+}
+
+function route(){
+  const h = location.hash.replace(/^#/, ''), [path, q] = h.split('?'), m = path.match(/^\/zone\/(\w+)/), p = new URLSearchParams(q || '');
+  const t = p.get('t'), mm = t && t.match(/^(\d{1,2}):?(\d{2})$/);
+  if (mm){ simT = clamp(+mm[1] * 60 + +mm[2], T0, T1 - 1); setPlaying(false); walkers = []; logCount = -1; }
+  const id = m && ZMAP[m[1]] ? m[1] : null;
+  if (id){ view = 'zone'; zoneId = id; vO.hidden = true; vZ.hidden = false; if (selId !== id) select(id); buildZoneView(id); }
+  else { view = 'overview'; zoneId = null; if (zRO){ zRO.disconnect(); zRO = null; } vZ.hidden = true; vZ.innerHTML = ''; vO.hidden = false; logCount = -1; for (const z of ZONES) z.ui.evId = -1; requestAnimationFrame(resize); }
+  zLogCount = -1; tick(true); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+/* ============================================================
+   7. 主循环
+   ============================================================ */
+let lastUI = 0, lastChart = 0;
+function tick(force){
+  const i = curIdx(); updateTop(i);
+  if (view === 'zone'){ updateZoneView(i); return; }
+  updateCards(i); updateDetail(i); updateRules(i); updateLog();
+  if (force){ drawChart(); drawSpark(); }
+}
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (playing){ simT += dt * speed / 60; if (simT >= T1 - 0.01){ simT = T0; logCount = -1; } }
+  if (view === 'overview'){ updWalkers(dt); updCars(dt); render(now / 1000); }
+  if (now - lastUI > 200){ lastUI = now; tick(false); }
+  if (view === 'overview' && now - lastChart > 700){ lastChart = now; drawChart(); if (sparkHover === null) drawSpark(); }
+  requestAnimationFrame(frame);
+}
+
+drawGround(); buildCards(); buildRules();
+new ResizeObserver(resize).observe(wrap);
+new ResizeObserver(() => drawChart()).observe(chartWrap);
+resize(); select(selId); route();
+requestAnimationFrame(frame);
+window.__TWIN__ = {S, EV, ST, ZONES};   // 调试用
+})();
+</script>
+</body>
+</html>
